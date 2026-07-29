@@ -11,6 +11,7 @@ export default defineConfig({
 	description: "从零构建 agent harness",
 	lastUpdated: true,
 	cleanUrls: true,
+	base: "/pi-learn/",
 	srcExclude: ["README.md", "CONTRIBUTING.md"],
 	ignoreDeadLinks: [/\.ts$/],
 	rewrites: {
