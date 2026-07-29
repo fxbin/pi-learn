@@ -1,3 +1,8 @@
+/**
+ * s04 InterruptDiagram 样式。
+ * 左侧循环结构 + 右侧模式信息栏。
+ * @author fxbin
+ */
 .id-root {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -37,9 +42,14 @@
   transition: all 0.2s;
 }
 
-.id-controls button:hover {
+.id-controls button:hover:not(:disabled) {
   border-color: var(--orange);
   color: var(--orange);
+}
+
+.id-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .id-tabs {
@@ -71,78 +81,216 @@
 }
 
 .id-stage {
-  padding: 40px 24px;
+  padding: 32px 24px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: 48px;
+  gap: 40px;
   flex-wrap: wrap;
 }
 
-.id-flow {
+.id-loop {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  align-items: stretch;
+  min-width: 320px;
+  flex: 1;
+  max-width: 480px;
 }
 
-.id-flow-link {
+.id-loop-label {
+  font-size: 13px;
+  color: var(--green);
+  padding: 8px 12px;
+  border: 1px dashed var(--border);
+  border-bottom: none;
+  text-align: center;
+  letter-spacing: 0.1em;
+}
+
+.id-loop-body {
+  border: 1px dashed var(--border);
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  align-items: stretch;
+  gap: 0;
+}
+
+.id-loop-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .id-node {
-  width: 160px;
+  display: flex;
+  align-items: stretch;
   border: 1px solid var(--border);
   background: var(--bg);
-  padding: 14px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--text);
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .id-node.active {
   border-color: var(--orange);
-  box-shadow: 0 0 16px rgba(255, 77, 0, 0.15);
+  box-shadow: 0 0 16px var(--glow-orange);
 }
 
-.id-node.trigger {
-  border-color: var(--green);
-  color: var(--green);
-  box-shadow: 0 0 16px rgba(0, 255, 102, 0.15);
+.id-node.trigger-point {
+  border-left: 3px solid var(--text-dim);
 }
 
-.id-flow-arrow {
-  font-size: 16px;
-  color: var(--text-dim);
+.id-node.fired {
+  border-color: var(--red);
+  box-shadow: 0 0 16px var(--glow-red);
 }
 
-.id-outcome {
-  min-width: 180px;
+.id-node-num {
+  width: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  border-right: 1px solid var(--border);
+  background: var(--surface-2);
+  flex-shrink: 0;
+}
+
+.id-node-body {
+  flex: 1;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.id-node-label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.id-node-code {
+  font-size: 10px;
+  color: var(--text-dim);
+  word-break: break-all;
+}
+
+.id-node-tag {
+  align-self: center;
+  padding: 4px 8px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--orange);
+  border: 1px solid var(--orange);
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.id-arrow-down {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-dim);
+  padding: 6px 0;
+  line-height: 1;
+}
+
+.id-loop-back {
+  text-align: center;
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: 0.1em;
+  padding: 10px 0 4px;
+  border-top: 1px dashed var(--border);
+  margin-top: 6px;
+}
+
+.id-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 240px;
+  max-width: 280px;
+  flex-shrink: 0;
+}
+
+.id-side-section {
+  border: 1px solid var(--border);
+  padding: 12px;
+  background: var(--bg);
+}
+
+.id-side-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.id-mode-name {
+  font-size: 14px;
+  color: var(--orange);
+  margin-bottom: 6px;
+}
+
+.id-mode-desc {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.id-trigger-info {
+  font-size: 11px;
+  color: var(--text);
+}
+
+.id-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  padding: 4px 0;
+}
+
+.id-status-key {
+  color: var(--text-dim);
+}
+
+.id-status-val {
+  color: var(--text);
+}
+
+.id-status-val.on {
+  color: var(--red);
+}
+
+.id-status-val.off {
+  color: var(--text-dim);
 }
 
 .id-outcome-box {
   border: 1px solid var(--border);
-  padding: 16px;
+  padding: 14px;
   font-size: 12px;
   text-align: center;
-  width: 100%;
+  opacity: 0.3;
+  transition: all 0.3s ease;
+}
+
+.id-outcome-box.show {
+  opacity: 1;
 }
 
 .id-outcome-box.abort {
-  border-color: #ff3333;
-  color: #ff3333;
+  border-color: var(--red);
+  color: var(--red);
 }
 
 .id-outcome-box.steer {
-  border-color: #a855f7;
-  color: #a855f7;
+  border-color: var(--purple);
+  color: var(--purple);
 }
 
 .id-outcome-box.maxturns {
@@ -154,9 +302,6 @@
   border-top: 1px solid var(--border);
   padding: 16px 20px;
   text-align: center;
-}
-
-.id-mode-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-dim);
 }

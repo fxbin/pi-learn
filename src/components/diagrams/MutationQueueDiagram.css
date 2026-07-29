@@ -1,3 +1,8 @@
+/**
+ * s03 MutationQueueDiagram 样式。
+ * 三栏布局：并发入队 → promise 链 → 写盘时序。
+ * @author fxbin
+ */
 .mqd-root {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -48,89 +53,208 @@
 }
 
 .mqd-stage {
-  padding: 48px 24px;
+  padding: 40px 24px;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
+  gap: 16px;
   overflow-x: auto;
 }
 
-.mqd-chain {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: min-content;
-}
-
-.mqd-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.mqd-node {
-  width: 140px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  padding: 16px 12px;
+.mqd-col {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 200px;
+  flex: 1;
+  max-width: 280px;
+}
+
+.mqd-col-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mqd-enqueue {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+}
+
+.mqd-task-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 11px;
   transition: all 0.3s ease;
 }
 
-.mqd-node.running {
-  border-color: var(--orange);
-  box-shadow: 0 0 16px rgba(255, 77, 0, 0.15);
-}
-
-.mqd-node.done {
-  border-color: var(--green);
-}
-
-.mqd-node.failed {
-  border-color: #ff3333;
-}
-
-.mqd-node-name {
-  font-size: 12px;
-  color: var(--text);
-}
-
-.mqd-node-status {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+.mqd-task-chip.queued {
   color: var(--text-dim);
 }
 
-.mqd-node.running .mqd-node-status {
-  color: var(--orange);
+.mqd-task-chip.running {
+  border-color: var(--orange);
+  box-shadow: 0 0 12px var(--glow-orange);
 }
 
-.mqd-node.done .mqd-node-status {
+.mqd-task-chip.done {
+  border-color: var(--green);
   color: var(--green);
 }
 
-.mqd-connector {
+.mqd-chip-name {
+  color: inherit;
+}
+
+.mqd-chip-status {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+.mqd-arrow-down {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 18px;
+  min-width: 48px;
+}
+
+.mqd-arrow-label {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.mqd-chain-vis {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.mqd-chain-head,
+.mqd-chain-tail {
+  padding: 6px 10px;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.mqd-chain-text {
+  color: var(--text-dim);
+}
+
+.mqd-chain-link {
+  display: flex;
+  align-items: stretch;
+  border-left: 2px solid var(--border);
+  padding-left: 12px;
+}
+
+.mqd-chain-connector {
+  color: var(--text-dim);
+  font-size: 10px;
   display: flex;
   align-items: center;
-  width: 48px;
+  padding: 0 4px;
 }
 
-.mqd-connector-line {
+.mqd-chain-node {
   flex: 1;
-  height: 2px;
-  background: var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  transition: all 0.3s ease;
+  gap: 2px;
 }
 
-.mqd-connector-head {
-  width: 0;
-  height: 0;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 8px solid var(--border);
+.mqd-chain-node.queued {
+  color: var(--text-dim);
+}
+
+.mqd-chain-node.running {
+  border-color: var(--orange);
+  box-shadow: 0 0 12px var(--glow-orange);
+}
+
+.mqd-chain-node.done {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.mqd-chain-name {
+  font-size: 11px;
+}
+
+.mqd-chain-status {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+.mqd-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mqd-timeline-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mqd-timeline-bar {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 11px;
+  transition: all 0.3s ease;
+}
+
+.mqd-timeline-bar.queued {
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+.mqd-timeline-bar.running {
+  border-color: var(--orange);
+  box-shadow: 0 0 12px var(--glow-orange);
+}
+
+.mqd-timeline-bar.done {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.mqd-timeline-gap {
+  height: 6px;
+  border-left: 1px dashed var(--border);
+  margin-left: 10px;
+}
+
+.mqd-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 4px;
 }
 
 .mqd-footer {
@@ -150,4 +274,5 @@
 .mqd-note {
   color: var(--text-dim);
   font-size: 11px;
+  text-align: center;
 }

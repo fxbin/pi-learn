@@ -40,7 +40,7 @@ export default function CompactionDiagram() {
   const displayTotal = displayMessages.reduce((sum, m) => sum + m.tokens, 0);
 
   return (
-    <div className="cd-root">
+    <div className="cd-root diagram">
       <div className="cd-header">
         <span className="cd-title">CONTEXT COMPACTION</span>
         <div className="cd-controls">

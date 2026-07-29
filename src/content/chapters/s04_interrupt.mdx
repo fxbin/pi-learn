@@ -116,7 +116,7 @@ node code.ts
 
 ## 源码锚点
 
-mini-pi 的单层循环，在真 pi 里是 `runLoop`：`.reference/pi/packages/agent/src/agent-loop.ts` 第 155-275 行。配套类型在 `packages/agent/src/types.ts`（搜 `getSteeringMessages`、`getFollowUpMessages`）。读完回答三个问题：
+mini-pi 的单层循环，在真 pi 里是 `runLoop`：[`packages/agent/src/agent-loop.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/agent-loop.ts) 第 155-275 行。配套类型在 [`packages/agent/src/types.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/types.ts)（搜 `getSteeringMessages`、`getFollowUpMessages`）。读完回答三个问题：
 
 1. 第 170 行和第 174 行各有一个 `while`，**两层循环各自为什么存在**？外层（170）管什么，内层（174）管什么？（提示：`followUpMessages` vs `steeringMessages` + 工具调用）mini-pi 只有单层，省掉的是哪一种需求？
 2. 第 167 行在循环开始前就调了一次 `getSteeringMessages`，**为什么不等第一轮跑完再调**？（提示：用户在 agent 启动到第一次调 LLM 之间，可能已经敲了字）

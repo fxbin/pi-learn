@@ -1,0 +1,414 @@
+.es-root {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 32px 0;
+  font-family: var(--font-mono);
+}
+
+.es-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.es-title {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+}
+
+.es-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.es-controls button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.es-controls button:hover,
+.es-controls button.active {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.es-figure {
+  padding: 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.es-figure:last-of-type {
+  border-bottom: none;
+}
+
+.es-figure-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+/* ── 图 A 流式时序 ── */
+.es-stream-stage {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.es-side {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+}
+
+.es-side.producer {
+  border-color: var(--orange);
+}
+
+.es-side.consumer {
+  border-color: var(--green);
+}
+
+.es-side-title {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.es-event {
+  font-size: 14px;
+  color: var(--orange);
+  font-weight: 700;
+  opacity: 0.3;
+  transition: opacity 0.3s;
+}
+
+.es-event.visible {
+  opacity: 1;
+}
+
+.es-consumer-state {
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.es-consumer-state.await {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.es-consumer-state.recv {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.es-consumer-state.done {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+
+.es-middle {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.es-counters {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.es-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.es-counter-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.es-counter-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.es-buffers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.es-buffer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.es-buffer-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  width: 52px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.es-cells {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-height: 26px;
+  align-items: center;
+}
+
+.es-cell {
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.4;
+}
+
+.es-cell.active {
+  border-color: var(--orange);
+  color: var(--orange);
+  opacity: 1;
+}
+
+.es-arrow-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.es-arrow {
+  font-size: 18px;
+  color: var(--text-dim);
+}
+
+.es-arrow-note {
+  font-size: 11px;
+  color: var(--text);
+}
+
+.es-result-badge {
+  margin-top: 16px;
+  padding: 10px 16px;
+  border: 1px dashed var(--border);
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  opacity: 0.4;
+  transition: all 0.3s;
+}
+
+.es-result-badge.visible {
+  border-color: var(--green);
+  color: var(--green);
+  opacity: 1;
+  background: var(--surface-2);
+}
+
+/* ── 图 B repairJson 状态机 ── */
+.es-repair-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.es-inject-label {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.es-repair-controls button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 5px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.es-repair-controls button:hover,
+.es-repair-controls button.active {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+
+.es-repair-stage {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.es-repair-col {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  min-height: 90px;
+}
+
+.es-col-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.es-io {
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-all;
+  text-align: center;
+}
+
+.es-output {
+  color: var(--green);
+}
+
+.es-char {
+  font-size: 16px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+}
+
+.es-hl-control {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.es-hl-badEscape {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.es-hl-trailing {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+
+.es-state {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+}
+
+.es-state.true {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.es-state.false {
+  border-color: var(--text-dim);
+  color: var(--text-dim);
+}
+
+.es-repair-note {
+  font-size: 12px;
+  color: var(--text);
+  padding: 10px 12px;
+  border-left: 2px solid var(--orange);
+  background: var(--surface-2);
+  margin-bottom: 16px;
+}
+
+.es-waterfall {
+  border-top: 1px dashed var(--border);
+  padding-top: 16px;
+}
+
+.es-waterfall-title {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.es-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.es-layer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.es-layer.succeed {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--surface-2);
+}
+
+.es-layer-status {
+  font-weight: 700;
+}
+
+.es-repaired {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.es-repaired code {
+  color: var(--green);
+}
+
+.es-footer {
+  border-top: 1px solid var(--border);
+  padding: 12px 20px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+}

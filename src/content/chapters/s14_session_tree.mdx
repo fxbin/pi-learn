@@ -1,0 +1,254 @@
+---
+title: 会话分支树
+num: S14
+description: entry 树 + JSONL 持久化 + branch/fork/compaction 截断。
+order: 14
+concepts:
+  - entry 树
+  - parentId DAG
+  - leaf 指针
+  - branch 切换
+  - fork 跨文件
+  - compaction 截断
+  - branch_summary
+---
+import SessionTreeDiagram from "../../components/diagrams/SessionTreeDiagram.tsx";
+
+# s14: 会话分支树 —— 一个 .jsonl 如何承载对话分叉
+
+> 历史不可改，但可以分叉。一个文件，一棵树，多条路径。
+
+`...` → [s01](/pi-learn/chapters/s01_agent_loop/) → ... → [s05](/pi-learn/chapters/s05_session/) → ... → [s13](/pi-learn/chapters/s13_stateful_agent/) → **`s14`** → [番外 extensions](/pi-learn/extras/)
+
+---
+
+## 问题
+
+s05 讲的是线性 append-only：每条消息往后追加，只能回放一条路径。但真实 agent 经常遇到这种需求：
+
+- 用户问完第 3 轮后悔了，想"回到第 2 轮换个问法"
+- 调试时想从某个历史节点 fork 一份去做实验，原会话不动
+- 上下文窗口快满了，想压缩早期对话但不能丢历史
+
+第一种情况，如果直接改历史会破坏既有记录；第二种需要跨文件复制；第三种要"保留历史但不发给模型"。这三件事用同一个数据结构解决：**entry 树**。
+
+每条 entry 不再只有"上一条"的隐式顺序，而是显式带 `id` 和 `parentId`，构成一棵 DAG。一个文件就承载了所有分支，切换分支只是改一个指针。
+
+<SessionTreeDiagram client:load />
+
+---
+
+## 解决方案
+
+把每条记录抽象成 `entry`：带 `id`（8 字符 hex）、`parentId`（父节点 id，根为 null）、`timestamp`、`type`。所有 entry 追加到同一个 `.jsonl` 文件里，第一行是 header，其余每行一个 entry。
+
+文件里存的是**整棵树**，但模型每次只看一条**从根到叶的路径**。`leafId` 指针标记当前活动分支的末端：
+
+```typescript
+interface SessionEntryBase {
+    type: string;
+    id: string;
+    parentId: string | null;
+    timestamp: string;
+}
+```
+
+三个操作覆盖所有分支需求：
+
+| 操作 | 做什么 | 改文件吗 |
+|---|---|---|
+| `appendMessage` | 新 entry 的 parentId = 当前 leafId；leafId 前进 | 追加一行 |
+| `branch(targetId)` | 只改 leafId 指针，不追加 entry | 不改 |
+| `fork(targetLeafId)` | 复制 root→targetLeafId 路径到新文件 | 写新文件 |
+
+**关键洞察**：`branch` 不追加任何 entry，只是把 `this.leafId` 改成历史某节点。下一次 `appendMessage` 时，新 entry 的 `parentId` 就指向那个历史节点，由此分叉出一条新分支。旧分支的 entry 仍在文件里，没有被修改或删除。
+
+这就是 append-only 与分支树的统一：**写入永不修改，分支只是指针移动**。
+
+---
+
+## 工作原理
+
+打开 [code.ts](/pi-learn/chapters/s14_session_tree/code.ts)，重点看五块。
+
+**第 1 块：entry 类型与 header。** entry 有三种教学版类型：`SessionMessageEntry`（对话消息）、`CompactionEntry`（压缩摘要）、`BranchSummaryEntry`（分支切换摘要）。公共字段 `id/parentId/timestamp` 来自 `SessionEntryBase`。文件第一行是 `SessionHeader`：`type:"session"` + `version:3` + 会话 id + cwd，可选 `parentSession` 指向 fork 源文件。
+
+**第 2 块：appendEntry 与 leafId 前进。** `_appendEntry` 是所有追加操作的公共尾巴：
+
+```typescript
+private appendEntry(entry: SessionEntry): void {
+    this.lines.push(entry);
+    this.byId.set(entry.id, entry);
+    this.leafId = entry.id;
+    this.flush();
+}
+```
+
+`appendMessage` 构造 entry 时 `parentId = this.leafId`（当前叶子），追加后 `leafId` 前进到新 entry。这就是线性增长——leafId 一直往前走，形成单条路径。
+
+**第 3 块：branch 切换指针。** 这是本章最关键的一行：
+
+```typescript
+branch(targetId: string): void {
+    if (!this.byId.has(targetId)) throw new Error(`Entry ${targetId} 不存在`);
+    this.leafId = targetId;
+    this.flush();
+}
+```
+
+就改一个指针。文件不动，entry 不加。下一次 `appendMessage` 时，新 entry 的 `parentId` 指向 `targetId`，从此处分叉出新分支。旧分支的 entry 仍在文件里——这就是"历史不可改，但可以分叉"。
+
+`branchWithSummary` 在切换指针的同时追加一条 `BranchSummaryEntry`，让模型知道"为什么历史突然变了"：
+
+```typescript
+const entry: BranchSummaryEntry = {
+    type: "branch_summary",
+    id: generateId(this.byId),
+    parentId: targetId,
+    timestamp: new Date().toISOString(),
+    fromId: targetId,
+    summary,
+};
+```
+
+**第 4 块：fork 跨文件复制。** `fork` 调用 `getBranch(targetLeafId)` 取出 root→targetLeafId 路径上的所有 entry，复制到新会话文件：
+
+```typescript
+fork(targetLeafId?: string): SessionTree {
+    const leafId = targetLeafId ?? this.leafId;
+    const pathEntries = this.getBranch(leafId);
+    const child = new SessionTree(this.cwd);
+    const header: SessionHeader = {
+        type: "session", version: CONFIG.currentVersion,
+        id: child.sessionId, timestamp: new Date().toISOString(),
+        cwd: this.cwd,
+        parentSession: this.sessionFile ?? undefined,
+    };
+    child.lines = [header, ...pathEntries];
+    child.rebuildIndex();
+    child.ensureDir();
+    child.flush();
+    return child;
+}
+```
+
+新文件的 header 带 `parentSession` 指向源文件，方便追溯。原文件完全不变。`clone()` 就是 `fork(this.leafId)`——在当前位置快照一份。
+
+**第 5 块：buildContext 的 compaction 截断。** 这是树的另一面：**文件里存全部历史，发给 LLM 的只是路径上的一段**。`getBranch` 从 leaf 回溯到根，返回完整路径；`buildContext` 在路径上找最后一个 `CompactionEntry`，只发 summary + `firstKeptEntryId` 之后的消息：
+
+```typescript
+if (!lastCompaction) {
+    for (const entry of branchPath) {
+        if (entry.type === "message") messages.push(...);
+    }
+    return messages;
+}
+messages.push({ role: "user", content: `[历史摘要] ${lastCompaction.summary}` });
+const compactionIdx = branchPath.indexOf(lastCompaction);
+let foundFirstKept = false;
+for (let i = 0; i < compactionIdx; i++) {
+    if (entry.id === lastCompaction.firstKeptEntryId) foundFirstKept = true;
+    if (foundFirstKept && entry.type === "message") messages.push(...);
+}
+for (let i = compactionIdx + 1; i < branchPath.length; i++) {
+    if (entry.type === "message") messages.push(...);
+}
+```
+
+compaction 之前的消息**仍在文件里**，`getTree` 仍能看到它们，只是不再发给 LLM。这就是"历史保留 + 上下文截断"——s06 讲的是压缩算法本身，本章讲的是压缩结果如何嵌入树结构。
+
+---
+
+## 运行
+
+```bash
+node code.ts demo       # 跑内置 demo，无 API key 也能看分支树效果
+node code.ts            # 进入 REPL，手动操作
+```
+
+REPL 命令：
+
+```
+new              新建会话
+send <role> <text>  追加消息（role: user/assistant/tool）
+branch <id>      切换分支到指定 entry
+fork [id]        fork 当前 leaf 或指定 id 到新文件
+clone            在当前位置 fork 一份
+compact <id> <summary>  在指定 entry 处压缩
+tree             打印树
+ctx              打印 LLM 上下文
+```
+
+试试这个流程：`send user 你好` → `send assistant 我是 agent` → `send user 写代码` → `tree` → `branch <第二条id>` → `send user 换个问法` → `tree`。你会看到从 b 节点分叉出两条分支，leaf 指向新分支末端。
+
+---
+
+## 源码锚点
+
+mini 版是教学级简化。真 pi 的会话分支树在两处，先读再回答问题：
+
+**第一处：[`packages/coding-agent/src/core/session-manager.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/session-manager.ts)**
+
+这是 pi 的 SessionManager（1466 行）。读 `getBranch`（约 1076 行）和 `branch`（约 1167 行），回答：
+
+1. `getBranch` 用 `unshift` 把节点插入数组头部，为什么不用 `push`？（提示：回溯方向 vs 返回方向）
+2. `branch` 方法只有 3 行，不追加任何 entry。如果用户切换分支后直接退出程序，重启后 leafId 会回到哪里？（提示：看 `_buildIndex`，leafId = 文件最后一条 entry 的 id）
+3. `branchWithSummary` 追加的 `BranchSummaryEntry` 的 `parentId` 指向谁？为什么不是指向被放弃的分支末端？
+
+**第二处：[`packages/agent/src/harness/session/jsonl-storage.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/harness/session/jsonl-storage.ts)**
+
+这是底层存储。读 `setLeafId`（约 226 行）和 `LeafEntry`，回答：
+
+4. 底层用 `LeafEntry` 持久化 leaf 指针，上层 SessionManager 不用。两种策略各自的代价是什么？（提示：重启后能否恢复 leaf 位置）
+5. `leafIdAfterEntry` 在加载时决定 leafId：遇到普通 entry 返回 `entry.id`，遇到 `LeafEntry` 返回 `entry.targetId`。为什么这个区分是必要的？
+
+**第三处：[`packages/coding-agent/src/core/agent-session.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/agent-session.ts) 的 `navigateTree`（约 2657 行）**
+
+这是 `/tree` 命令的入口。回答：
+
+6. `navigateTree` 根据目标节点类型决定 `newLeafId`：目标是 user message 时 `newLeafId = targetEntry.parentId`，其他类型时 `newLeafId = targetId`。为什么 user message 要回退到它的 parent？（提示：让用户能编辑这条消息后重新发送）
+
+**动手任务（改 mini-pi）**：给 `SessionTree` 加一个 `listBranches()` 方法，返回所有叶子节点 id（即没有任何 entry 以它为 parentId 的节点）。提示：遍历 `byId`，收集"没有被任何 entry 的 parentId 引用"的 id。
+
+---
+
+## 妥协清单
+
+mini-pi 的会话树比真 pi 简单很多，以及为什么省略是安全的：
+
+| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+|---|---|---|
+| LeafEntry 持久化 leaf | 追加 `type:"leaf"` entry 记录指针，重启后恢复 | leafId = 文件最后一条 entry id，重启后回到末尾（不恢复分支切换状态，但教学够用） |
+| 文件锁 | `proper-lockfile` 防多进程竞态 | 单进程教学，无并发 |
+| entry 类型 | 10 种（含 thinking_level_change / model_change / custom / label / session_info 等） | 3 种（message / compaction / branch_summary）已能演示树结构 |
+| 版本迁移 | v1→v2→v3 迁移链，自动重写文件 | 直接用 v3，不处理旧文件 |
+| uuidv7 | 时间有序 ID，便于按时间排序 | 用 randomUUID 前 8 位，纯随机但不影响树结构 |
+| fork 的 label 迁移 | fork 时重新生成 label entry | 不实现 label，跳过 |
+| `getPathToRootOrCompaction` | 代码中实际是 `getPathToRoot`，**不在 compaction 处停止** | compaction 只在 `buildContext` 阶段截断，不影响路径回溯 |
+| 跨会话 tree 视图 | `getTree()` 含 label / labelTimestamp | 只展示 entry 树结构 |
+
+这张表是 mini-pi 与真 pi 的差距地图。读完 pi 的 `session-manager.ts` 再回头看，你会看到每一项省略背后都有一道真 pi 在防的故障。
+
+---
+
+## 默写验收
+
+合上 code.ts 和本 README，打开 [practice.ts](/pi-learn/chapters/s14_session_tree/practice.ts)，凭记忆补全：
+
+1. `generateId` —— 8 字符 hex + 碰撞重试
+2. `newSession` —— header 构造 + sessionFile 命名（时间戳把 `:` 和 `.` 换成 `-`）
+3. `appendMessage` —— parentId = leafId，appendEntry 后 leafId 前进
+4. `branch` —— 只改指针，不追加
+5. `fork` —— getBranch 取路径 + 复制到新文件 + parentSession 指针
+6. `getBranch` —— while 循环 unshift 到头部
+7. `buildContext` —— compaction 截断：找最后一个 compaction，只发 summary + firstKeptEntryId 之后
+
+通过标准：`node practice.ts demo` 能完整跑出分支树生命周期——new → 三轮对话 → branch → 新分支 → fork → compaction，每步的 `printTree` 和 `printContext` 输出符合预期。
+
+写不出 `branch` 说明"只改指针不追加 entry"的洞察没进脑子——回到「工作原理」第 3 块重读。写不出 `buildContext` 的 compaction 截断说明"历史保留 + 上下文截断"没记住——这个漏了模型会收到全量历史，上下文窗口会爆。
+
+---
+
+**十四章走完，你已经把 pi 的会话管理从线性推到了树形：** 循环（s01）、工具（s02）、编辑（s03）、中断（s04）、会话（s05）、压缩（s06）、技能（s07）、供应商（s08）、TUI（s09）、扩展（s10）、编排（s11）、流式（s12）、有状态（s13）、**分支树（s14）**。每一章只加一个概念，每一个概念都映射到真 pi 的一段源码。会话不再是一条线，而是一棵树。
+
+下一章：[番外 extensions](/pi-learn/extras/)

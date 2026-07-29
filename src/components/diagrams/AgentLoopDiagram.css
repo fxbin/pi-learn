@@ -40,13 +40,14 @@
   color: var(--orange);
 }
 
+/* 三节点横排：用户 — LLM — 工具 */
 .ald-stage {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 48px 24px;
-  flex-wrap: wrap;
+  gap: 0;
+  padding: 56px 24px;
+  flex-wrap: nowrap;
 }
 
 .ald-node {
@@ -61,11 +62,12 @@
   gap: 8px;
   position: relative;
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
 .ald-node.active {
   border-color: var(--orange);
-  box-shadow: 0 0 20px rgba(255, 77, 0, 0.15);
+  box-shadow: 0 0 20px var(--glow-orange);
 }
 
 .ald-status {
@@ -87,41 +89,71 @@
   letter-spacing: 0.05em;
 }
 
-.ald-arrow-wrap {
+/* LLM 节点上的循环图标 */
+.ald-loop-icon {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--green);
+  background: var(--bg);
+}
+
+/* 双线通道：上下两根箭头线，形成回路 */
+.ald-channel {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 80px;
+  justify-content: space-between;
+  height: 48px;
+  width: 130px;
+  min-width: 130px;
+  position: relative;
 }
 
-.ald-arrow-wrap.reverse {
-  transform: rotate(180deg);
+/* 循环通道（LLM↔工具）加视觉标记 */
+.ald-channel-loop {
+  height: 56px;
 }
 
-.ald-arrow-wrap.reverse .ald-arrow-label {
-  transform: rotate(-180deg);
+.ald-channel-loop::before {
+  content: "LOOP";
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--green);
+  letter-spacing: 0.15em;
 }
 
+/* 箭头线 */
 .ald-arrow {
-  display: flex;
-  align-items: center;
+  height: 2px;
+  background: var(--border);
+  position: relative;
+  transition: all 0.3s ease;
   width: 100%;
 }
 
-.ald-arrow-line {
-  flex: 1;
-  height: 2px;
-  background: var(--border);
-  transition: background 0.3s ease;
-}
-
-.ald-arrow.active .ald-arrow-line {
+.ald-arrow.active {
   background: var(--orange);
-  box-shadow: 0 0 6px rgba(255, 77, 0, 0.4);
+  box-shadow: 0 0 6px var(--glow-orange);
 }
 
-.ald-arrow-head {
+/* 向右箭头头 */
+.ald-arrow-right::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 0;
   height: 0;
   border-top: 5px solid transparent;
@@ -130,22 +162,62 @@
   transition: border-color 0.3s ease;
 }
 
-.ald-arrow.active .ald-arrow-head {
+.ald-arrow-right.active::after {
   border-left-color: var(--orange);
 }
 
-.ald-arrow-label {
-  font-size: 10px;
-  color: var(--text-dim);
-  text-align: center;
-  min-height: 14px;
+/* 向左箭头头 */
+.ald-arrow-left::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 8px solid var(--border);
+  transition: border-color 0.3s ease;
 }
 
-.ald-step {
+.ald-arrow-left.active::before {
+  border-right-color: var(--orange);
+}
+
+.ald-arrow-label {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.ald-arrow.active .ald-arrow-label {
+  color: var(--orange);
+}
+
+.ald-channel-loop .ald-arrow:last-child .ald-arrow-label {
+  top: auto;
+  bottom: -14px;
+}
+
+/* 底部状态栏 */
+.ald-footer {
   border-top: 1px solid var(--border);
   padding: 16px 20px;
   display: flex;
   gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ald-step-info {
+  display: flex;
+  gap: 12px;
   align-items: center;
 }
 
@@ -158,4 +230,30 @@
 .ald-step-label {
   font-size: 13px;
   color: var(--text);
+}
+
+.ald-loop-count {
+  font-size: 11px;
+  color: var(--green);
+  border: 1px solid var(--green);
+  padding: 2px 8px;
+}
+
+.ald-stop-reason {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .ald-stage {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 32px 16px;
+  }
+
+  .ald-channel {
+    width: 80px;
+    min-width: 80px;
+  }
 }

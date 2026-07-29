@@ -1,3 +1,8 @@
+/**
+ * s05 SessionJsonlDiagram 样式。
+ * 两栏布局：内存数组 ↔ 磁盘 JSONL，中间是 flush/load 方向箭头。
+ * @author fxbin
+ */
 .sjd-root {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -24,6 +29,7 @@
 .sjd-controls {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .sjd-controls button {
@@ -37,31 +43,64 @@
   transition: all 0.2s;
 }
 
-.sjd-controls button:hover {
+.sjd-controls button:hover:not(:disabled) {
   border-color: var(--orange);
   color: var(--orange);
 }
 
+.sjd-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sjd-phase-bar {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.sjd-phase {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+}
+
+.sjd-phase.running {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.sjd-phase.crashed {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.sjd-phase.resumed {
+  color: var(--purple);
+  border-color: var(--purple);
+}
+
 .sjd-stage {
-  padding: 40px 24px;
+  padding: 32px 24px;
   display: flex;
   align-items: stretch;
   justify-content: center;
-  gap: 20px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .sjd-col {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-width: 200px;
+  gap: 8px;
+  min-width: 220px;
   flex: 1;
   max-width: 320px;
 }
 
 .sjd-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -72,22 +111,33 @@
 .sjd-file {
   border: 1px solid var(--border);
   background: var(--bg);
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 160px;
+  gap: 6px;
+  min-height: 180px;
+  transition: all 0.3s ease;
+}
+
+.sjd-array.crashed {
+  border-color: var(--red);
+  border-style: dashed;
+  opacity: 0.5;
 }
 
 .sjd-array.loaded {
   border-color: var(--green);
 }
 
+.sjd-file.persisted {
+  border-color: var(--green);
+}
+
 .sjd-msg {
   display: flex;
   gap: 8px;
-  padding: 8px;
-  font-size: 12px;
+  padding: 6px 8px;
+  font-size: 11px;
   border-left: 3px solid var(--border);
 }
 
@@ -103,6 +153,7 @@
   color: var(--text-dim);
   text-transform: uppercase;
   min-width: 64px;
+  font-size: 10px;
 }
 
 .sjd-text {
@@ -115,7 +166,7 @@
   color: var(--green);
   word-break: break-all;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 4px;
+  padding: 3px 0;
 }
 
 .sjd-line:last-child {
@@ -129,17 +180,45 @@
   margin: auto 0;
 }
 
-.sjd-arrow {
+.sjd-arrow-col {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  font-size: 20px;
+  justify-content: center;
+  min-width: 120px;
+  gap: 8px;
+}
+
+.sjd-arrow {
+  font-size: 16px;
   color: var(--text-dim);
-  padding-top: 24px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.sjd-arrow.active {
+  color: var(--orange);
+  border-color: var(--orange);
+}
+
+.sjd-arrow-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-align: center;
+  letter-spacing: 0.05em;
+  max-width: 140px;
+}
+
+.sjd-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: center;
 }
 
 .sjd-footer {
   border-top: 1px solid var(--border);
-  padding: 16px 20px;
+  padding: 14px 20px;
   text-align: center;
   font-size: 11px;
   color: var(--text-dim);

@@ -1,0 +1,213 @@
+---
+title: AgentSession
+num: S11
+description: 分层架构 + compaction 自动触发 + 模型切换 + 事件订阅。
+order: 11
+concepts:
+  - 分层架构
+  - 会话编排器
+  - compaction 触发点
+  - overflow 恢复
+  - 模型切换零成本
+---
+import SessionOrchestratorDiagram from "../../components/diagrams/SessionOrchestratorDiagram.tsx";
+
+# s11: AgentSession — 会话编排与公共 SDK 设计
+
+> Agent 管单次循环，AgentSession 管多轮之间的状态收口。
+
+`...` → [s10](/pi-learn/chapters/s10_extensions/) → **`s11`**
+
+---
+
+## 问题
+
+s01 的 `agentLoop` 是裸循环：`messages` 数组散落在 `main` 里，谁都能改，没人管。跑一轮就结束，下一轮重新来。没有自动 compaction——上下文满了只能崩。没有模型切换——想从 sonnet 换到 haiku 得改代码重启。没有事件订阅——外部无法感知"agent 开始了""压缩触发了""模型换了"。
+
+真实 pi 在 `Agent` 之上还有一层 `AgentSession`，做"会话编排"：管多轮之间的状态收口。`Agent` 只管单次循环（问模型 → 执行工具 → 回填结果），`AgentSession` 管的是循环之间的事：compaction 何时触发、模型怎么切、事件怎么订阅、overflow 怎么恢复。
+
+这不是过度设计。如果你写过 s01 到 s06 的代码，你会发现 `main` 里的胶水代码越来越多：压缩逻辑、模型判断、状态标记……全堆在调用方。`AgentSession` 就是把这些胶水收进一个类，对外只暴露 `prompt()` / `setModel()` / `subscribe()` 三个入口。
+
+---
+
+## 解决方案
+
+三层分层：**Mode (I/O) → AgentSession (Orchestration) → Agent (State)**。
+
+<SessionOrchestratorDiagram client:load />
+
+| 层 | 职责 | 对应 pi |
+|---|---|---|
+| Mode | I/O 层：stdin/stdout、TUI、REPL | `interactive` / `print` / `rpc` 三种 mode |
+| AgentSession | 编排层：compaction 触发、模型切换、事件订阅、overflow 恢复 | `AgentSession` 类 |
+| Agent | 状态层：agentLoop、messages、tools | `Agent` 类 |
+
+`AgentSession.prompt()` 是核心入口，四步收口一轮对话：
+
+| 步骤 | 动作 | 信号 |
+|---|---|---|
+| Step1 | 入队 user 消息 | `this._messages.push({ role: "user", ... })` |
+| Step2 | 跑前检查：上一轮若 aborted 则先压缩 | `await this._maybeCompactBefore()` |
+| Step3 | 跑 agentLoop（复用 s01） | `await agentLoop(this._messages, ...)` |
+| Step4 | 跑后检查：overflow 删+compact+retry / threshold 只 compact | `await this._checkCompactionAfter()` |
+
+本质是把 s01 散落在 `main` 里的胶水逻辑，收进一个有状态的对象。状态不裸露（`_messages` 是 private），外部通过 getter 和事件订阅感知变化。
+
+---
+
+## 工作原理
+
+打开 [code.ts](/pi-learn/chapters/s11_agent_session/code.ts)，重点看三块。
+
+**第 1 块：MiniAgentSession 类骨架。** 状态字段 + getter + 事件订阅：
+
+```typescript
+class MiniAgentSession {
+  private _messages: ChatMessage[] = [];
+  private _model: ModelRef;
+  private _overflowRecovered = false;
+  private _lastStopReason: RunStopReason = "end";
+  private _listeners: Listener[] = [];
+
+  get messages(): ChatMessage[] { return this._messages; }
+  get model(): ModelRef { return this._model; }
+
+  subscribe(listener: Listener): () => void {
+    this._listeners.push(listener);
+    return () => { this._listeners = this._listeners.filter((l) => l !== listener); };
+  }
+}
+```
+
+`_overflowRecovered` 是 overflow 恢复的"一次性保险丝"：触发一次后置 true，防止 compact → retry → 还是 overflow → compact → retry 的无限循环。`_lastStopReason` 记录上一轮的结局，供下一轮的 `_maybeCompactBefore` 判断。
+
+**第 2 块：prompt() 四步流程。** 所有状态收口都在这里：
+
+```typescript
+async prompt(text: string): Promise<void> {
+  this._messages.push({ role: "user", content: text });
+  await this._maybeCompactBefore();
+  this._isStreaming = true;
+  this._emit({ type: "agent_start" });
+  this._lastStopReason = await agentLoop(this._messages, this._model, this._tools, this._systemPrompt);
+  this._isStreaming = false;
+  await this._checkCompactionAfter();
+  this._emit({ type: "agent_end" });
+}
+```
+
+注意 agentLoop 的返回值：`"end"` / `"aborted"` / `"overflow"`。这个返回值是 `_checkCompactionAfter` 决策的依据——s01 的 agentLoop 返回 void，s11 加了这个返回值让 session 能感知循环结局。
+
+**第 3 块：compaction 两触发 + 模型切换。**
+
+`_checkCompactionAfter` 两个 case 的区别是本章的核心区分点：
+
+```typescript
+// Case1: overflow — LLM 报溢出
+if (this._lastStopReason === "overflow") {
+  if (this._overflowRecovered) return;
+  this._overflowRecovered = true;
+  // 删最后一条 assistant（错误消息），压缩后 retry
+  if (last && last.role === "assistant") this._messages.pop();
+  const compacted = await compactMessages(this._messages, this._model);
+  this._messages.length = 0; this._messages.push(...compacted);
+  this._lastStopReason = await agentLoop(...);
+  return;
+}
+// Case2: threshold — token 超阈值但没溢出
+const tokens = estimateTokens(this._messages);
+if (tokens > this._model.contextWindow * this._compactionThreshold) {
+  const compacted = await compactMessages(this._messages, this._model);
+  this._messages.length = 0; this._messages.push(...compacted);
+}
+```
+
+overflow 要 **删 + compact + retry**（因为 LLM 已经报错了，不删那条错误消息重试还会溢出）；threshold 只 **compact 不 retry**（下一轮 prompt 时自然用压缩后的上下文）。`_overflowRecovered` 只在 overflow 路径置 true，threshold 不动它。
+
+`setModel` 三步，关键洞察是"不重建 Agent"：
+
+```typescript
+async setModel(model: ModelRef): Promise<void> {
+  const previous = this._model;
+  this._model = model;
+  this._overflowRecovered = false;
+  this._emit({ type: "model_select", model, reason: `set: ${previous.id} → ${model.id}` });
+}
+```
+
+只换 `_model` 引用，`_messages` / `_tools` / `_systemPrompt` 全部不动。对话无缝续接，上下文不丢、工具不重注册。`_overflowRecovered` 重置是因为换了模型，新模型的上下文窗口可能更大，应该允许再次尝试恢复。
+
+---
+
+## 运行
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+node code.ts
+```
+
+试这三件事：
+
+1. **模型切换**：输入 `/model`，观察紫色 `[event] model_select → claude-haiku-4-5` 日志。再输入 `/model` 切回 sonnet。对话不中断，上下文不丢。
+2. **threshold 压缩**：跑一个长任务（如 `列出当前目录所有文件，逐个读取并总结内容`），观察终端出现 `[event] compaction_start` → `compaction_end (threshold)` 紫色提示。
+3. **overflow 恢复**：把 `CONFIG.compactionThreshold` 临时调到 `0.01`（几乎必触发），跑一个会产生大量 tool_result 的任务。如果 agentLoop 报 overflow，session 会自动删错误消息 + compact + retry，不会崩溃。
+
+调回 `0.7` 跑正常任务，threshold 基本不会触发，行为与 s01 一致。
+
+---
+
+## 前置概念清单
+
+本章只引入五个新概念：
+
+1. **分层架构**：Mode / AgentSession / Agent 三层，I/O、编排、状态各司其职。层间通过方法调用耦合（prompt / subscribe / setModel），不共享内部状态
+2. **会话编排器**：在单次循环之上包一层，管多轮之间的状态收口（compaction 触发、模型切换、事件订阅）。Agent 管一轮，AgentSession 管一轮又一轮
+3. **compaction 触发点**：两个时机——overflow（LLM 报溢出，事后补救，删错误消息 + retry）和 threshold（token 超阈值，事前预防，只 compact 不 retry）
+4. **overflow 恢复**：overflow 时删最后一条 assistant（错误消息）+ compact + retry。`_overflowRecovered` 标记防无限循环：只 retry 一次，再溢出就放弃
+5. **模型切换零成本**：setModel 只换 `_model` 引用，不重建 Agent。messages/tools/systemPrompt 全在 session 里，对话无缝续接
+
+---
+
+## 源码锚点
+
+mini-pi 的 MiniAgentSession 是教学级简化。真 pi 的实现在 [`packages/coding-agent/src/core/agent-session.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/agent-session.ts)，先读三段，回答三个问题：
+
+1. `_checkCompaction`（[L1767-1845](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/agent-session.ts#L1767)）的 `skipAbortedCheck` 参数：before-prompt 调用时传 `false`，after-prompt 调用时传 `true`。为什么 before-prompt 要检查 aborted 而 after-prompt 要跳过？（提示：after-prompt 的 assistant 消息如果是 aborted，是谁 abort 的？before-prompt 的上一条 aborted assistant 又是怎么来的？）
+2. `setModel`（[L1417-1432](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/agent-session.ts#L1417)）除了改 model 还调了 `sessionManager.appendModelChange` 和 `settingsManager.setDefaultModelAndProvider`。mini-pi 省了这两步会怎样？（提示：s05 的持久化和跨会话默认模型）
+3. `createAgentSession`（[sdk.ts L202-422](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/sdk.ts#L202)）是公共 SDK 入口。它做了 model 恢复、thinking level 恢复、tool 注册、extension runner 注入……mini-pi 的 `new MiniAgentSession(options)` 省了哪些？（提示：看 constructor 的 `config` 参数有多少字段）
+
+**动手任务（改 mini-pi）**：给 `_checkCompactionAfter` 的 overflow 路径加一个 `console.warn`——当 `_overflowRecovered` 已经是 true 且再次 overflow 时，打印"上下文溢出恢复失败，请手动压缩或切换更大窗口的模型"。想想：真 pi 在这个分支做了什么（提示：看 L1796-1807 的 `_emit`）？
+
+---
+
+## 妥协清单
+
+mini-pi 的 MiniAgentSession 比真 pi 的 AgentSession 少做了什么，以及为什么省略是安全：
+
+| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+|---|---|---|
+| 扩展系统 | `ExtensionRunner` 注入 before/after 钩子，拦截 input/prompt/context | 教学聚焦编排本身；扩展是 s10 的事 |
+| 文件持久化 | `SessionManager` 每条消息 append 到 jsonl，支持 resume | s05 已讲；本章内存数组够演示编排 |
+| 自动重试 | `_prepareRetry` + `_retryAttempt` 对可重试错误指数退避 | overflow 恢复已演示 retry 机制；通用重试是正交维度 |
+| steer 队列 | streaming 时 `steer()` / `followUp()` 注入新消息 | 单线性 prompt；steer 是 s04 的事 |
+| thinking level | `setThinkingLevel` 按模型能力 clamp | 只切模型不切 thinking；省一维参数 |
+| 事件类型 | 20+ 种事件（auto_retry_end / branch_summary / bash_execution...） | 5 种够演示订阅机制 |
+| 模型恢复 | `createAgentSession` 从 session 恢复上次模型 | 无持久化，无从恢复 |
+| scoped models | `--models` 限制可切换范围 | cycleModel 接受任意列表，调用方自行限制 |
+
+这张表每一行都是真 pi 多花的工程量。读完 `agent-session.ts` 的 constructor 再回头看，你会更清楚每一项在防什么故障。
+
+---
+
+## 默写验收
+
+合上 code.ts 和本 README，打开 [practice.ts](/pi-learn/chapters/s11_agent_session/practice.ts)，凭记忆补全 4 个必默写：
+
+1. **类字段 + getter**：9 个字段（`_messages` / `_model` / `_tools` / `_systemPrompt` / `_isStreaming` / `_listeners` / `_overflowRecovered` / `_lastStopReason` / `_compactionThreshold`）+ 3 个 getter
+2. **prompt() 四步**：入队 → `_maybeCompactBefore` → 跑 agentLoop → `_checkCompactionAfter`
+3. **`_checkCompactionAfter` 两个 case**：overflow 删+compact+retry（`_overflowRecovered` 防循环）/ threshold 只 compact
+4. **setModel 三步**：改 `_model` + 重置 `_overflowRecovered` + emit
+
+通过标准：`node practice.ts` 跑起来，`/model` 切换模型能看到事件日志，跑长任务能看到 `[event] compaction_*` 提示且压缩后对话不崩溃。
+
+写不出 prompt() 四步说明"入队 → 跑前检查 → agentLoop → 跑后检查"的闭环没进脑子，回到「工作原理」第 2 块重读。写不出 `_checkCompactionAfter` 两个 case 的区别——overflow 要删+retry、threshold 不删不retry——回到第 3 块重读，这是本章的核心区分点。

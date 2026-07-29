@@ -124,9 +124,9 @@ node code.ts
 
 mini-pi 的 edit + queue，在真 pi 里对应三个文件：
 
-1. `.reference/pi/packages/agent/src/harness/tools/edit.ts` — edit 工具入口，`withFileMutationQueue` 包裹整个读-改-写
-2. `.reference/pi/packages/agent/src/harness/tools/edit-diff.ts` — 模糊匹配、BOM 处理、diff 生成
-3. `.reference/pi/packages/agent/src/harness/tools/file-mutation-queue.ts` — 按文件 canonical path 分 key 的队列
+1. [`packages/agent/src/harness/tools/edit.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/harness/tools/edit.ts) — edit 工具入口，`withFileMutationQueue` 包裹整个读-改-写
+2. [`packages/agent/src/harness/tools/edit-diff.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/harness/tools/edit-diff.ts) — 模糊匹配、BOM 处理、diff 生成
+3. [`packages/agent/src/harness/tools/file-mutation-queue.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/harness/tools/file-mutation-queue.ts) — 按文件 canonical path 分 key 的队列
 
 先读一遍，再回答三个问题（答案就在代码里）：
 

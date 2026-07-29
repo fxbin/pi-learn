@@ -1,0 +1,257 @@
+---
+title: Extensions
+num: S10
+description: 生命周期钩子编排 + 三层错误隔离 + 动态加载。
+order: 10
+concepts:
+  - 插件架构
+  - 生命周期钩子
+  - Observer/Interceptor/Transformer
+  - 错误隔离
+  - stale context 保护
+---
+import ExtensionHookDiagram from "../../components/diagrams/ExtensionHookDiagram.tsx";
+
+# s10: Extensions — 生命周期钩子编排 + 三层错误隔离 + 动态加载
+
+> 模块即插件，钩子即接缝，错误不外溢。
+
+`...` → [s01](/pi-learn/chapters/s01_agent_loop/) → ... → [s09 TUI](/pi-learn/chapters/s09_tui/) → **`s10`**
+
+---
+
+## 问题
+
+s07 的 skills 是"静态 `.md` 注入"：启动时扫一遍目录，把文件内容拼进 system prompt。改一条知识得改文件、重启进程；想"在工具调用前拦截危险命令"、"在消息结束后过滤敏感词"、"记录每次会话开始"——这些**带逻辑的行为**塞不进 `.md`，必须写代码。
+
+更糟的是，不同用户想注入的逻辑还不一样：有人想要 git 钩子，有人想要 profanity 过滤，有人想要自定义审批。把这些写死在主循环里，每加一个功能就改一次核心代码，核心很快被插件逻辑污染。
+
+你需要一个机制：**动态加载 TS 模块，模块里注册钩子到生命周期事件上，核心循环在固定接缝处调用钩子**。加功能不改核心，换插件不重启进程（运行时加载）。
+
+但动态加载带个致命风险：**第三方模块可能抛错**。一个写崩的插件不能让整个 agent 崩——必须有错误隔离。
+
+---
+
+## 解决方案
+
+把扩展系统拆成三块：**ExtensionFactory 工厂函数 + 三类钩子模式 + 三层错误隔离**。
+
+每个扩展是一个 TS 模块，`default export` 一个工厂函数 `(api) => { api.on(event, handler) }`。加载器调用 `await factory(api)`，工厂函数用 `api.on` 把 handler 注册到事件上。核心循环在固定接缝（session 开始、工具调用前、消息结束后…）调用 `runner.emit(event)`，所有注册了该事件的 handler 依次执行。
+
+真 pi 有 26 个事件。教学版归纳成**三类钩子模式**（每种模式 emit 策略不同）：
+
+```
+Observer（只观察）       session_start / session_shutdown   → emit，无返回值，不短路
+Interceptor（可 cancel）  tool_call                           → emit，返回 { block } 时短路
+Transformer（链式 reduce） context / message_end               → emitTransform，前一个的输出喂给下一个
+```
+
+三类钩子共享**三层错误隔离**：
+
+```
+第 1 层：单个 handler 用 try/catch 包住
+第 2 层：抛错 → emitError({ extensionPath, event, error }) 推送 errorListeners
+第 3 层：当前 handler 失败，后续扩展的 handler 照常执行（链不中断）
+```
+
+再加一层 **stale context 保护**：切换会话/重载后调用 `invalidate()`，旧 ctx 再 emit 会抛 stale 错误，防止捕获了旧 ctx 的扩展误用。
+
+<ExtensionHookDiagram client:load />
+
+---
+
+## 工作原理
+
+打开 [code.ts](/pi-learn/chapters/s10_extensions/code.ts)，重点看四块。
+
+**第 1 块：类型定义。** `ExtensionFactory` 是入口类型——一个接收 API 的函数：
+
+```typescript
+type ExtensionFactory = (api: ExtensionAPI) => void | Promise<void>;
+```
+
+支持同步或异步初始化（`Promise<void>`）。事件按三类分接口：Observer 事件（`SessionStartEvent` 等）无返回值；Interceptor 事件（`ToolCallEvent`）配 `ToolCallEventResult { block?, reason? }`；Transformer 事件（`ContextEvent`/`MessageEndEvent`）返回变换后的值。真 pi 的 26 个事件是 `ExtensionEvent` 联合类型（见 types.ts:949），教学版精简到 6 个。
+
+**第 2 块：Runtime + 加载器。** `createExtensionRuntime` 是关键工程决策——action 方法是 **throwing stubs**：
+
+```typescript
+function createExtensionRuntime(): ExtensionRuntime {
+	const notInitialized = (): never => { throw new Error(RUNTIME_NOT_INITIALIZED); };
+	return { errorListeners: new Set(), sendMessage: notInitialized, setModel: notInitialized };
+}
+```
+
+加载阶段（`await factory(api)` 执行时）扩展可能误调用 `sendMessage` 等动作方法，但此时 runner 还没 `bindCore`，真实实现不存在。throwing stubs 让这种误调用**立即抛错**而非静默失败。真 pi 的 `createExtensionRuntime`（loader.ts:124）把十几个 action 方法全设成 `notInitialized`，等 `runner.bindCore()` 逐个替换成真实实现。
+
+`loadExtension` 的核心只有一行 `await factory(api)`：
+
+```typescript
+async function loadExtension(factory, name, runtime): Promise<Extension> {
+	const extension = { path: name, handlers: new Map(), tools: [] };
+	const api = createExtensionAPI(extension, runtime);
+	await factory(api);
+	return extension;
+}
+```
+
+真 pi 用 jiti 运行时加载 TS 文件（`await jiti.import(path)`，loader.ts:331），取 `default` 导出作为 factory；教学版直接传入 factory 函数，但 `await factory(api)` 这一步完全一致——工厂函数在此执行所有 `api.on` 注册。
+
+**第 3 块：ExtensionRunner。** 三个 emit 方法对应三类钩子。通用 `emit` 处理 Observer + Interceptor：
+
+```typescript
+async emit(event): Promise<EventResult> {
+	this.assertActive();
+	const ctx = this.createContext();
+	let result: EventResult = undefined;
+	for (const ext of this.extensions) {
+		const handlers = ext.handlers.get(event.type);
+		if (!handlers || handlers.length === 0) continue;
+		for (const handler of handlers) {
+			try {
+				const r = (await handler(event, ctx)) as EventResult;
+				if (r && (r.cancel || r.block)) return r;
+			} catch (err) {
+				this.emitError({ extensionPath: ext.path, event: event.type, error: ... });
+			}
+		}
+	}
+	return result;
+}
+```
+
+三层错误隔离全在这一段：外层 `for` 遍历扩展（第 3 层），内层 `for` 遍历 handler，`try/catch` 包住单个 handler（第 1 层），抛错走 `emitError`（第 2 层），**continue 到下一个扩展**。Interceptor 的短路也在这一段：`r.block` 为真立即 `return`，后续扩展不再执行。
+
+`emitTransform` 是 Transformer 的链式 reduce：
+
+```typescript
+async emitTransform<T>(event, initial: T): Promise<T> {
+	this.assertActive();
+	let current: T = structuredClone(initial);
+	for (const ext of this.extensions) {
+		const handlers = ext.handlers.get(event.type);
+		if (!handlers || handlers.length === 0) continue;
+		for (const handler of handlers) {
+			try {
+				const next = await handler({ ...event, ...current }, ctx);
+				if (next !== undefined && next !== null) current = next as T;
+			} catch (err) { this.emitError({ ... }); }
+		}
+	}
+	return current;
+}
+```
+
+两个关键点：`structuredClone(initial)` 深拷贝保护原数据（真 pi 的 `emitMessageEnd` 用 `{ ...event, message: currentMessage }` 线程）；`{ ...event, ...current }` 把**当前累积值**喂给下一个 handler，前一个的输出变成后一个的输入——这就是 reduce。
+
+`assertActive` 是 stale 保护：`invalidate()` 后 `staleMessage` 被设置，任何 emit 一进来就 `if (this.staleMessage) throw`。
+
+**第 4 块：三个示例扩展 + 演示。** logger 是 Observer（`on("session_start", ...)` 打印日志），profanityFilter 是 Transformer（`on("message_end", ...)` 返回过滤后的 text），blockDangerousTool 是 Interceptor（`on("tool_call", ...)` 命中 `rm -rf` 返回 `{ block: true }`）。还有一个 boom 扩展——`on("session_start", () => { throw new Error("boom") })`——纯粹用来演示错误隔离。`run()` 跑一次完整 turn：session_start → message_end → tool_call → session_shutdown，最后 invalidate 演示 stale 抛错。
+
+---
+
+## 运行
+
+```bash
+node code.ts
+```
+
+输出大致如下（boom 扩展抛错被隔离，黄色 `[error]` 是 errorListener 打印的，其他扩展照常运行）：
+
+```
+s10: Extensions（加载 4 个扩展）
+
+─ session_start（observer + boom 抛错 → error 隔离）
+[logger] session_start cwd=/Users/fxbin/...
+[error] boom/session_start: boom
+
+─ message_end（transformer 链式 reduce）
+[logger] message_end text="hello damn world"
+结果: text="hello **** world"
+
+─ tool_call（interceptor block 短路）
+结果: blocked=true reason=dangerous command blocked
+
+─ session_shutdown（observer）
+
+─ invalidate 后再 emit → 抛 stale 错误
+caught stale: This extension ctx is stale after session replacement...
+
+s10 演示结束。
+```
+
+注意三件事：① boom 抛错后 logger 已经打印过（错误隔离，不影响先执行的扩展）；② message_end 经 profanityFilter 后 `damn` → `****`（链式变换）；③ tool_call 被 block 短路（没有 result 的后续扩展不再执行）。
+
+---
+
+## 前置概念清单
+
+本章引入五个新概念：
+
+1. **插件架构**：ExtensionFactory 工厂函数 + `api.on` 注册钩子，核心循环在接缝处调用，加功能不改核心
+2. **生命周期钩子**：session_start / tool_call / message_end 等事件点，扩展挂载 handler，核心在固定时机 emit
+3. **Observer/Interceptor/Transformer**：三类钩子模式——只观察、可 cancel/block、链式 reduce，对应三种 emit 策略
+4. **错误隔离**：单个 handler try/catch 包住，抛错走 emitError 推送 errorListeners，链不中断，其他扩展照常运行
+5. **stale context 保护**：invalidate 标记失效，旧 ctx 的 assertActive 抛 stale 错误，防止会话切换后误用旧上下文
+
+---
+
+## 源码锚点
+
+mini-pi 的扩展系统是教学级简化。真 pi 的实现在以下三个文件，先读 runner.ts：
+
+| 文件 | 关键行号 | 看什么 |
+|---|---|---|
+| [`.../extensions/runner.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/runner.ts) | 680-712 | 通用 `emit`：try/catch 错误隔离 + session_before 事件的 cancel 短路 |
+| 同上 | 714-754 | `emitMessageEnd`：链式变换，`{ ...event, message: currentMessage }` 线程当前值，role 校验 |
+| 同上 | 466-479 | `invalidate` / `assertActive`：stale 保护，只记录第一条 staleMessage |
+| 同上 | 806-827 | `emitToolCall`：**没有 try/catch**（见下方讨论） |
+| [`.../extensions/loader.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/loader.ts) | 124-170 | `createExtensionRuntime`：十几个 action 方法全是 throwing stubs，等 bindCore 替换 |
+| 同上 | 331-343 | `loadExtensionModule`：jiti 运行时加载 TS，取 default 作为 factory |
+| [`.../extensions/types.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/types.ts) | 949-972 | `ExtensionEvent` 联合类型：26 个事件 |
+| 同上 | 1378-1379 | `ExtensionFactory` 类型签名（同步或异步） |
+
+**工程瑕疵讨论点**：真 pi 的 `emitToolCall`（runner.ts:806）**缺少 try/catch**。第 815 行 `await handler(event, ctx)` 直接执行，handler 抛错会一路冒泡出 `emitToolCall`，不像通用 `emit` 那样走 `emitError` 隔离。这意味着：一个 tool_call handler 抛错会让整条 tool_call 分发链崩掉，连后续扩展的 block 检查都跑不到。对比我们的 code.ts——`emit` 把 Observer 和 Interceptor 统一处理，try/catch 一视同仁。这是真实代码库里"复制粘贴忘了套壳"的典型痕迹，读源码时要带着批判眼光。
+
+回答三个问题（答案在代码里）：
+
+1. 通用 `emit`（680 行）用 `isSessionBeforeEvent` 判断是否检查 `result.cancel`——为什么不直接判断 `result?.cancel`？（提示：Transformer 事件的 result 没有 cancel 字段，但类型上是 `unknown`，运行时可能误命中）
+2. `emitMessageEnd`（729 行）校验 `handlerResult.message.role !== currentMessage.role` 就 emitError 并 continue——为什么 role 变了就拒绝？一个把 assistant 消息改成 user 消息的扩展会导致什么？（提示：消息顺序错乱，模型把"自己的话"当"用户的输入"）
+3. `createExtensionRuntime`（loader.ts:154）的 `invalidate` 用 `??=`（只赋值一次）——为什么不用 `=` 覆盖？第二次 invalidate 的消息会被忽略，这防的是什么？（提示：第一次的 staleMessage 已经被 assertActive 抛出，覆盖会让错误信息漂移）
+
+**动手任务（改 mini-pi）**：给 code.ts 的 `emitInterceptor` 加一个 `onBlock` 回调参数，当扩展 block 时调用它记录是哪个扩展拦截的。再思考：为什么 blockDangerousTool 的 `on("tool_call", ...)` 要返回 `undefined` 表示放行，而不是不返回？（提示：emit 里 `r && (r.cancel || r.block)` 依赖 truthy 判断，返回 undefined 明确表达"不拦截"）
+
+---
+
+## 妥协清单
+
+mini-pi 的扩展系统比真 pi 简单很多，以及为什么省略是安全：
+
+| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+|---|---|---|
+| jiti 运行时加载 | `loadExtensionModule` 用 jiti 支持运行时 TS（禁用 moduleCache） | 教学版直接传入 factory 函数，`await factory(api)` 这一步一致，省掉 jiti 配置噪音 |
+| 26 个事件 | `ExtensionEvent` 联合类型 26 个，含 resources_discover/model_select/user_bash 等 | 归纳成 6 个事件 + 3 类模式足够演示钩子编排；多出的只是更多接缝 |
+| TypeBox schema | 工具/命令注册带 TypeBox 运行时校验 | 教学版 tools 只打印不执行，schema 校验无意义 |
+| 命令快捷键冲突仲裁 | `resolveRegisteredCommands` 检测重名命令、shortcut 冲突 | 没有命令系统，冲突检测无对象 |
+| EventBus / 事件优先级 | pi 支持扩展间通信与优先级排序 | 单向 emit（核心→扩展）已演示钩子模式；扩展间通信是进阶 |
+| bindCore 真实实现 | runner.bindCore() 把 throwing stubs 替换成 sendMessage/setModel 真实实现 | 教学版不执行 action（不真的发消息/切模型），stubs 留作展示模式即可 |
+| Provider 注册队列 | `pendingProviderRegistrations` 在加载期排队，bindCore 后 flush | 没有 provider 系统（s08 已讲），注册无处 flush |
+| messageRenderers | 自定义消息类型渲染器 | 没有 TUI（s09），渲染无界面 |
+| 错误类型码 | ExtensionError 带 extensionPath/event/error/stack 结构化字段 | 字符串消息够用；errorListeners 只打印，不做程序化分类 |
+
+这张表每一行都是真 pi 多花的工程量。读完 `runner.ts` 的 `emit` / `emitMessageEnd` / `emitToolCall` 三个方法再回头看，你会更清楚 try/catch 该包在哪一层、漏包一层会发生什么。
+
+---
+
+## 默写验收
+
+合上 code.ts 和本 README，打开 [practice.ts](/pi-learn/chapters/s10_extensions/practice.ts)，凭记忆补全五个核心：
+
+1. `createExtensionRuntime`——throwing stubs（`notInitialized` 函数 + action 方法指向它）
+2. `loadExtension`——`await factory(api)` 完成钩子注册
+3. `assertActive`——`staleMessage` 检查，invalidate 后抛 stale 错误
+4. `emit`——通用 emit（try/catch + emitError + cancel/block 短路）
+5. `emitTransform`——链式 reduce（structuredClone 初始值 + 逐个 handler 变换）
+
+通过标准：`node practice.ts` 跑起来，能看到 session_start 的 boom 抛错被黄色 `[error]` 隔离、message_end 的 `damn` 被过滤成 `****`、tool_call 被 block 短路、invalidate 后 emit 抛 stale 错误。
+
+写不出 `emit` 的 try/catch + continue，说明"错误隔离"没进脑子，回到「工作原理」第 3 块重读通用 emit 那段。写不出 `emitTransform` 的 `{ ...event, ...current }`，说明"链式 reduce"的线程逻辑没理解，回到 emitTransform 那段。写不出 `assertActive` 的一行 `if (staleMessage) throw`，说明 stale 保护没记住——这是最容易漏但最关键的一行。

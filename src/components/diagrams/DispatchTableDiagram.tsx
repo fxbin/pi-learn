@@ -18,7 +18,7 @@ export default function DispatchTableDiagram() {
   const [selected, setSelected] = useState<string | null>(null);
 
   return (
-    <div className="dtd-root">
+    <div className="dtd-root diagram">
       <div className="dtd-header">
         <span className="dtd-title">DISPATCH TABLE</span>
         <span className="dtd-subtitle">tool_use.name → handlers[name](input)</span>

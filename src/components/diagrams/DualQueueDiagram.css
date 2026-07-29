@@ -1,0 +1,318 @@
+/**
+ * s13 DualQueueDiagram 样式。
+ * 双 timeline 上下排列 + 状态机小图 + activeRun 三件套。
+ * steering 用 var(--orange)，followUp 用 var(--purple)。
+ * @author fxbin
+ */
+.dq-root {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 32px 0;
+  font-family: var(--font-mono);
+}
+
+.dq-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dq-title {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+}
+
+.dq-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.dq-controls button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dq-controls button:hover:not(:disabled) {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.dq-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dq-timelines {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dq-timeline {
+  border: 1px dashed var(--border);
+  padding: 16px;
+  background: var(--bg);
+}
+
+.dq-timeline-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dq-timeline-title {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.dq-inject-btn {
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dq-inject-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.dq-nodes {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.dq-node {
+  flex: 0 0 auto;
+  min-width: 92px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.dq-node::after {
+  content: "→";
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 12px;
+  z-index: 1;
+}
+
+.dq-node:last-child::after {
+  display: none;
+}
+
+.dq-node.current {
+  border-color: var(--accent);
+  box-shadow: 0 0 16px var(--glow-orange);
+}
+
+.dq-node.done {
+  opacity: 0.55;
+}
+
+.dq-node-idx {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+.dq-node-label {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.dq-node.drain {
+  border-left: 3px solid var(--accent);
+}
+
+.dq-node.drain.fired {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 16px var(--glow-orange);
+}
+
+.dq-node.drain.empty {
+  opacity: 0.4;
+  border-style: dotted;
+}
+
+.dq-queue-row {
+  margin-top: 12px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dq-queue-label {
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+.dq-queue-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dq-queue-content em {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.dq-queue-item {
+  color: var(--accent);
+  border: 1px dashed var(--accent);
+  padding: 2px 6px;
+}
+
+.dq-bottom {
+  border-top: 1px solid var(--border);
+  padding: 20px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.dq-fsm {
+  flex: 1;
+  min-width: 280px;
+}
+
+.dq-fsm-title,
+.dq-activerun-title {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+.dq-fsm-graph {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.dq-fsm-node {
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  font-size: 11px;
+  background: var(--bg);
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.dq-fsm-node.idle.on {
+  border-color: var(--text-dim);
+  color: var(--text-dim);
+}
+
+.dq-fsm-node.running.on {
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 12px rgba(0, 255, 102, 0.2);
+}
+
+.dq-fsm-node.aborted.on {
+  border-color: var(--red);
+  color: var(--red);
+  box-shadow: 0 0 12px var(--glow-red);
+}
+
+.dq-fsm-edge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.dq-fsm-edge.back {
+  grid-column: 4 / 5;
+}
+
+.dq-arrow {
+  font-size: 12px;
+}
+
+.dq-activerun {
+  flex: 1;
+  min-width: 240px;
+}
+
+.dq-activerun-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 11px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.dq-activerun-row:last-child {
+  border-bottom: none;
+}
+
+.dq-ar-key {
+  color: var(--text-dim);
+}
+
+.dq-ar-val {
+  color: var(--text);
+}
+
+.dq-ar-val.on {
+  color: var(--green);
+}
+
+.dq-ar-val.off {
+  color: var(--text-dim);
+}
+
+.dq-ar-val.aborted {
+  color: var(--red);
+}
+
+.dq-footer {
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}

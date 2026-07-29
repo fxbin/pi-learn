@@ -1,0 +1,191 @@
+---
+title: TUI 渲染
+num: S09
+description: 差分渲染引擎 + 16ms 节流 + synchronized output。
+order: 9
+concepts:
+  - framebuffer 状态化
+  - 差分渲染
+  - 三策略决策树
+  - 16ms 节流
+  - synchronized output
+---
+import DiffRenderDiagram from "../../components/diagrams/DiffRenderDiagram.tsx";
+
+# s09: TUI 渲染 — 把终端当 framebuffer
+
+> 已显示的行是状态，每帧只发送变化的那几行。
+
+`...` → [s01](/pi-learn/chapters/s01_agent_loop/) → ... → [s08](/pi-learn/chapters/s08_provider/) → **`s09`**
+
+---
+
+## 问题
+
+`console.log` 是 append-only 流：写出去就回不来。你想在终端画一个 spinner，下一帧要换字符，可上一帧的字符已经躺在屏幕上了——你只能继续往下写，于是看到一串 `⠋⠙⠹⠸` 全部堆在屏幕上。
+
+这不是 spinner 的问题，是所有 TUI 的共同问题：状态栏要刷新、输入框要回显、列表要高亮选中项——它们都要**改已经显示出来的内容**，而终端只有一个方向：往下写。
+
+把终端当成一张可改写的画布，需要一个 framebuffer 模型。
+
+---
+
+## 解决方案
+
+把"终端已显示的行"当状态保存下来（`previousLines`），每帧重新渲染组件树得到 `newLines`，逐行比较找出变化区间 `[firstChanged, lastChanged]`，只把这段区间重新写出去。没变的行一根都不碰。
+
+<DiffRenderDiagram client:load />
+
+三件事撑起这套引擎：
+
+| 机制 | 作用 |
+|---|---|
+| `previousLines` 状态化 | 让"上一帧"成为可比较的基准，差分才有意义 |
+| 三策略决策树 | 首帧全量、几何变化清屏、其他走差分，按优先级短路 |
+| synchronized output | `\x1b[?2026h ... \x1b[?2026l` 包裹整段写入，终端原子刷新不撕裂 |
+
+---
+
+## 工作原理
+
+打开 [code.ts](/pi-learn/chapters/s09_tui/code.ts)，重点看三块。
+
+**第 1 块：requestRender + scheduleRender（16ms 节流调度链）。** 组件想刷新就调 `requestRender()`，但它不立刻画——多次调用被 `process.nextTick` 合并成一次，再由 `scheduleRender` 做时间窗节流：
+
+```typescript
+requestRender(): void {
+    if (this.renderRequested) return;
+    this.renderRequested = true;
+    process.nextTick(() => this.scheduleRender());
+}
+
+private scheduleRender(): void {
+    if (this.stopped || this.renderTimer || !this.renderRequested) return;
+    const elapsed = Date.now() - this.lastRenderAt;
+    const delay = Math.max(0, MIN_RENDER_INTERVAL_MS - elapsed);
+    this.renderTimer = setTimeout(() => {
+        this.renderTimer = undefined;
+        if (this.stopped || !this.renderRequested) return;
+        this.renderRequested = false;
+        this.lastRenderAt = Date.now();
+        this.doRender();
+    }, delay);
+}
+```
+
+`MIN_RENDER_INTERVAL_MS = 16` 约等于一帧 60fps。spinner 每 200ms 触发一次远低于上限，但组件密集刷新时这层节流能把多次 `requestRender` 收敛成一帧。
+
+**第 2 块：doRender 三策略决策树。** 拿到 `newLines` 后按优先级短路判断：
+
+```typescript
+private doRender(): void {
+    if (this.stopped) return;
+    const width = this.terminal.columns;
+    const newLines = this.render(width);
+    if (this.previousLines.length === 0) {
+        this.fullRender(newLines, false);
+        return;
+    }
+    if (this.previousWidth !== width) {
+        this.fullRender(newLines, true);
+        return;
+    }
+    this.diffRender(newLines);
+}
+```
+
+首帧（`previousLines` 为空）假定屏幕干净，直接全量写出不清屏；宽度变化（窗口 resize）必须清屏重画，因为换行宽度全变了；其他情况走差分。三个分支互斥，按顺序短路。
+
+**第 3 块：差分算法（firstChanged/lastChanged 扫描 + synchronized output 包裹）。** 逐行比较定位变化区间，只重画这段：
+
+```typescript
+let firstChanged = -1;
+let lastChanged = -1;
+const maxLines = Math.max(newLines.length, this.previousLines.length);
+for (let i = 0; i < maxLines; i++) {
+    const oldLine = i < this.previousLines.length ? this.previousLines[i] : "";
+    const newLine = i < newLines.length ? newLines[i] : "";
+    if (oldLine !== newLine) {
+        if (firstChanged === -1) firstChanged = i;
+        lastChanged = i;
+    }
+}
+```
+
+找到区间后，`redrawRange` 把光标从末尾移到 `firstChanged`，逐行 `\x1b[2K`（清行）+ 写新内容，再把光标移回末尾。整段 buffer 用 `\x1b[?2026h` ... `\x1b[?2026l` 包裹——这是 synchronized output，终端会把这段输出缓冲到一次性刷新，避免中间状态被用户看到（撕裂感）。
+
+---
+
+## 运行
+
+```bash
+node code.ts
+```
+
+启动后会看到两行：上面一行文本，下面一个 spinner 在转。三个观察点：
+
+1. **spinner 持续刷新**：每 200ms 换一帧，但只有 spinner 那一行被重画，上面那行文本纹丝不动
+2. **3 秒后文本更新**：文本行内容变化，同样只重画这一行
+3. **按 ↑/↓ 改变 spinner 速度**：每按一次触发一次差分，观察 spinner 行的间隔数字变化
+
+按 `Ctrl+C` 退出。终端窗口拉伸触发 resize，会走几何变化分支清屏重画。
+
+---
+
+## 前置概念清单
+
+本章引入五个新概念，后续的章都建立在它们之上：
+
+1. **framebuffer 状态化**：把"终端已显示的行"存进 `previousLines`，让上一帧成为可比较的基准，差分才有意义
+2. **差分渲染**：只重画 `firstChanged..lastChanged` 区间，没变的行一根都不碰，把 I/O 量压到最低
+3. **三策略决策树**：首帧全量、几何变化清屏、其他走差分，按优先级短路判断，互斥不重叠
+4. **16ms 节流**：`requestRender` 用 `nextTick` 合并多次请求，`scheduleRender` 用 `setTimeout(16)` 限频，避免高频刷新闪烁
+5. **synchronized output**：`\x1b[?2026h` ... `\x1b[?2026l` 包裹整段写入，终端原子刷新不撕裂
+
+---
+
+## 源码锚点
+
+mini TUI 的两百行引擎，在真 pi 里对应 [`packages/tui/src/tui.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/tui/src/tui.ts)。先读一遍对应行号，再回答三个问题（答案就在代码里）：
+
+| 关键概念 | 行号 | 说明 |
+|---|---|---|
+| 状态字段 | 239-271 | `previousLines` / `previousWidth` / `renderRequested` / `renderTimer` / `lastRenderAt` / `MIN_RENDER_INTERVAL_MS` |
+| requestRender + scheduleRender | 494-542 | 16ms 节流调度链 + `process.nextTick` 合并 + `force` 强制清屏路径 |
+| doRender 三策略 | 953-1077 | 首帧 / 宽度变化 / 高度变化 / clearOnShrink / 差分，五条分支短路 |
+| synchronized output | 1145-1230 | 差分 buffer 拼接：光标移动 + 逐行 `\x1b[2K` 清写 + `?2026h/?2026l` 包裹 |
+
+1. 第 494-516 行的 `force` 分支：`requestRender(true)` 会把 `previousWidth` 置 -1 触发宽度变化。为什么不用单独的"强制重画"标志位，而是复用几何变化路径？（提示：决策树已经有 `widthChanged` 分支，复用比新增分支简单）
+2. 第 1022 行首帧判断 `previousLines.length === 0 && !widthChanged && !heightChanged`：为什么首帧要排除宽高变化？首次渲染时屏幕本来就是干净的，清不清屏有什么区别？（提示：清屏会 `\x1b[2J\x1b[H` 把光标移到左上角，但首帧前光标位置不确定）
+3. 第 1174 行 `renderEnd = Math.min(lastChanged, newLines.length - 1)`：为什么 `lastChanged` 可能大于 `newLines.length - 1`？这种情况下多余的旧行怎么清除？（提示：行数缩短时越界行扫描为 `""`，`lastChanged` 会指向旧长度）
+
+**动手任务（改 mini TUI）**：真 pi 的 `scheduleRender` 在 `doRender` 结束后检查 `renderRequested`，如果渲染期间又有新请求就继续调度。mini TUI 没有这个循环。给 `scheduleRender` 的 `setTimeout` 回调末尾加一句：`if (this.renderRequested) this.scheduleRender()`。验证：连续快速按 ↑ 五次，观察是否合并成一帧而不是五帧。
+
+---
+
+## 妥协清单
+
+mini TUI 比真 pi 少做了什么，以及为什么省略是安全的：
+
+| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+|---|---|---|
+| Kitty 图像协议 | `_G` 序列 + image id 管理 + `deleteKittyImages` | 教学场景无图像，差分逻辑不受影响 |
+| Overlay 叠层 | `overlayStack` + `compositeOverlays` 合成 | 单层组件树，无需模态层合成 |
+| Cursor marker | `CURSOR_MARKER` APC 序列 + IME 候选窗定位 | 无输入框，不需要硬件光标精确定位 |
+| Kitty 键盘协议 | `matchesKey` + `isKeyRelease` 区分按下/释放 | raw mode 够用，只需 Ctrl+C 和方向键 |
+| Viewport 滚动 | `prevViewportTop` + 缓冲区滚动 | 内容不超出屏高，无需虚拟视口 |
+| Termux 兼容 | `isTermuxSession` 跳过高度变化重画 | 桌面终端，软件键盘场景不存在 |
+| height 变化处理 | `heightChanged` 分支单独清屏 | 只追踪 width，resize 演示够用 |
+| 清屏收缩 | `clearOnShrink` 配置清除多余行 | 行数固定，不会收缩 |
+
+这张表是 mini TUI 与真 pi 的差距地图：真 pi 在这套差分骨架上叠了图像、叠层、IME、滚动、移动端兼容，但核心差分逻辑就是本章这三块。
+
+---
+
+## 默写验收
+
+合上 code.ts 和本 README，打开 [practice.ts](/pi-learn/chapters/s09_tui/practice.ts)，凭记忆补全四个函数体：`scheduleRender`、`doRender`、`diffRender`、`redrawRange`。
+
+通过标准：`node practice.ts` 跑起来，能看到首帧渲染、spinner 持续刷新、3 秒后文本更新只重画一行、按 ↑/↓ 改变 spinner 速度。
+
+写不出 `redrawRange` 说明光标移动和 synchronized output 没进脑子，回到「工作原理」第 3 块重读，再默写一遍。`scheduleRender` 写不出说明节流逻辑没理清，回到第 1 块。`doRender` 和 `diffRender` 写不出是决策树和差分扫描没记住，回到第 2、3 块。

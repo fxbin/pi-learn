@@ -7,9 +7,39 @@
   --grid: #1f1f1f;
   --orange: #ff4d00;
   --green: #00ff66;
+  --red: #ff3333;
+  --purple: #a855f7;
+  --yellow: #ffcc00;
   --border: #2a2a2a;
+  --header-bg: rgba(10, 10, 10, 0.85);
+  --shadow: rgba(0, 0, 0, 0.4);
+  --glow-orange: rgba(255, 77, 0, 0.18);
+  --glow-red: rgba(255, 51, 51, 0.25);
   --font-display: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", "Consolas", monospace;
+}
+
+/**
+ * 亮色主题：html.theme-on 时覆盖暗色变量。
+ * 所有色值经 WCAG 对比度校准，浅底上均 ≥ 4.5:1 (AA)。
+ */
+.theme-on {
+  --bg: #f5f5f5;
+  --surface: #ffffff;
+  --surface-2: #e0e0e0;
+  --text: #1a1a1a;
+  --text-dim: #4a4a4a;
+  --grid: #d4d4d4;
+  --orange: #b83000;
+  --green: #005a1f;
+  --red: #a82020;
+  --purple: #6b21a8;
+  --yellow: #8a6500;
+  --border: #b0b0b0;
+  --header-bg: rgba(245, 245, 245, 0.88);
+  --shadow: rgba(0, 0, 0, 0.12);
+  --glow-orange: rgba(184, 48, 0, 0.22);
+  --glow-red: rgba(168, 32, 32, 0.22);
 }
 
 * {
@@ -20,6 +50,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 80px;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-display);

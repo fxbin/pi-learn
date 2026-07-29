@@ -1,0 +1,224 @@
+.std-root {
+	border: 1px solid var(--border);
+	background: var(--card-bg, var(--bg));
+	font-family: var(--font-mono);
+	color: var(--text);
+	padding: 16px;
+}
+
+.std-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid var(--border);
+	padding-bottom: 12px;
+	margin-bottom: 16px;
+}
+
+.std-title {
+	font-size: 12px;
+	letter-spacing: 0.2em;
+	color: var(--text-dim);
+}
+
+.std-controls {
+	display: flex;
+	gap: 8px;
+}
+
+.std-controls button {
+	background: transparent;
+	border: 1px solid var(--border);
+	color: var(--text-dim);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	padding: 4px 10px;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.std-controls button:hover {
+	border-color: var(--orange);
+	color: var(--orange);
+}
+
+.std-stage {
+	display: grid;
+	grid-template-columns: 1.4fr 1fr;
+	gap: 12px;
+	min-height: 320px;
+}
+
+.std-panel {
+	border: 1px solid var(--border);
+	padding: 12px;
+	background: var(--bg);
+}
+
+.std-panel-label {
+	font-size: 10px;
+	color: var(--text-dim);
+	text-transform: uppercase;
+	letter-spacing: 0.15em;
+	margin-bottom: 10px;
+	border-bottom: 1px solid var(--border);
+	padding-bottom: 6px;
+}
+
+.std-side {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.std-panel-fork {
+	border-style: dashed;
+	border-color: var(--green);
+}
+
+.std-tree {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.std-empty {
+	color: var(--text-dim);
+	font-style: italic;
+	padding: 12px 0;
+	text-align: center;
+}
+
+.std-node-wrap {
+	display: flex;
+	flex-direction: column;
+}
+
+.std-node {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	border: 1px solid var(--border);
+	background: var(--card-bg, var(--bg));
+	transition: all 0.2s ease;
+}
+
+.std-node-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.std-node-body {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-width: 0;
+}
+
+.std-node-id {
+	font-size: 11px;
+	color: var(--text-dim);
+}
+
+.std-node-label {
+	font-size: 13px;
+	color: var(--text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.std-node-marker {
+	font-size: 10px;
+	color: var(--orange);
+	flex-shrink: 0;
+}
+
+.std-node-leaf {
+	border-color: var(--orange);
+	box-shadow: 0 0 0 1px var(--orange);
+}
+
+.std-node-highlight {
+	animation: std-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes std-pulse {
+	from {
+		border-color: var(--orange);
+	}
+	to {
+		border-color: var(--text);
+		box-shadow: 0 0 8px var(--glow-orange, var(--orange));
+	}
+}
+
+.std-node-compaction {
+	border-style: dashed;
+	border-color: var(--purple);
+	opacity: 0.7;
+}
+
+.std-children {
+	padding-left: 20px;
+	border-left: 1px dashed var(--border);
+	margin-left: 12px;
+	margin-top: 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.std-ctx-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.std-ctx-item {
+	display: flex;
+	gap: 8px;
+	font-size: 12px;
+	align-items: flex-start;
+}
+
+.std-ctx-role {
+	flex-shrink: 0;
+	font-weight: bold;
+	min-width: 36px;
+}
+
+.std-ctx-content {
+	color: var(--text-dim);
+	word-break: break-all;
+}
+
+.std-footer {
+	border-top: 1px solid var(--border);
+	padding-top: 12px;
+	margin-top: 16px;
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	font-size: 12px;
+}
+
+.std-step {
+	color: var(--orange);
+}
+
+.std-step-label {
+	color: var(--text-dim);
+}
+
+@media (max-width: 768px) {
+	.std-stage {
+		grid-template-columns: 1fr;
+	}
+	.std-side {
+		flex-direction: column;
+	}
+}

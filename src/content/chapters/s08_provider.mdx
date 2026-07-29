@@ -16,7 +16,7 @@ import ProviderDiagram from "../../components/diagrams/ProviderDiagram.tsx";
 
 > 内部模型只有一套，线格式各有各的样。转换在边界。
 
-`...` → [s01](/pi-learn/chapters/s01_agent_loop/) → ... → [s07](/pi-learn/chapters/s07_skills/) → **`s08`** → [番外 extensions](../extras/)
+`...` → [s01](/pi-learn/chapters/s01_agent_loop/) → ... → [s07](/pi-learn/chapters/s07_skills/) → **`s08`** → [番外 extensions](/pi-learn/extras/)
 
 ---
 
@@ -178,7 +178,7 @@ pi 的 `providers/` 目录下有几十家供应商，大多数（deepseek、groq
 
 mini-pi 的两个 provider 是教学级简化。真 pi 的供应商抽象分布在两处，先读再回答问题：
 
-**第一处：`.reference/pi/packages/ai/src/api/transform-messages.ts`**
+**第一处：[`packages/ai/src/api/transform-messages.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/ai/src/api/transform-messages.ts)**
 
 这是 pi 的消息边界转换器。读 `transformMessages` 函数（第 64 行），回答：
 
@@ -186,7 +186,7 @@ mini-pi 的两个 provider 是教学级简化。真 pi 的供应商抽象分布�
 2. 第 136-141 行：`normalizeToolCallId` 只在跨模型时调用。Anthropic 要求 ID 匹配 `^[a-zA-Z0-9_-]+$`（最多 64 字符），OpenAI 的 ID 含 `|` 且超长。如果不规范化会怎样？
 3. 第 163-180 行：`insertSyntheticToolResults` 给"孤儿" tool_use 补造假的 tool_result。什么情况下会出现有 tool_use 但没对应 tool_result的对话？（提示：想想中断和压缩）
 
-**第二处：`.reference/pi/packages/ai/src/providers/deepseek.ts`**
+**第二处：[`packages/ai/src/providers/deepseek.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/ai/src/providers/deepseek.ts)**
 
 只有 15 行。回答：为什么 deepseek 不需要自己的 API 实现，复用 `openAICompletionsApi()` 就够了？（提示：看 baseUrl 和 api 字段）
 
@@ -229,4 +229,4 @@ mini-pi 的 provider 比真 pi 简单很多，以及为什么省略是安全的�
 
 **八章走完，你已经有了一个完整的 mini-pi：** 循环（s01）、工具（s02）、编辑（s03）、中断（s04）、会话（s05）、压缩（s06）、技能（s07）、供应商（s08）。每一章只加一个概念，每一个概念都映射到真 pi 的一段源码。接下来是番外——把 mini-pi 往真 pi 方向再推一步。
 
-下一章：[番外 extensions](../extras/)
+下一章：[番外 extensions](/pi-learn/extras/)

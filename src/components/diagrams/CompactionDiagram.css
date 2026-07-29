@@ -112,7 +112,7 @@
 }
 
 .cd-fill.over {
-  background: #ff3333;
+  background: var(--red);
 }
 
 .cd-limit {
@@ -140,7 +140,7 @@
 }
 
 .cd-alert {
-  color: #ff3333;
+  color: var(--red);
 }
 
 .cd-info {

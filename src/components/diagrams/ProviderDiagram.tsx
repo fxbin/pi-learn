@@ -33,7 +33,7 @@ export default function ProviderDiagram() {
   const current = PROVIDERS.find((p) => p.id === provider)!;
 
   return (
-    <div className="pd-root">
+    <div className="pd-root diagram">
       <div className="pd-header">
         <span className="pd-title">LLM PROVIDER INTERFACE</span>
         <div className="pd-controls">

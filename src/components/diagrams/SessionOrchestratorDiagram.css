@@ -1,0 +1,419 @@
+/**
+ * s11 SessionOrchestratorDiagram 样式。
+ * 三视图：分层架构 / prompt 时序 / 模型切换。
+ * @author fxbin
+ */
+
+.so-root {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 32px 0;
+  font-family: var(--font-mono);
+}
+
+.so-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.so-title {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+}
+
+.so-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.so-controls button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.so-controls button:hover:not(:disabled) {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.so-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.so-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.so-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+}
+
+.so-tab:hover {
+  color: var(--text);
+}
+
+.so-tab.active {
+  color: var(--orange);
+  border-bottom-color: var(--orange);
+  background: var(--surface-2);
+}
+
+/* ── 分层架构视图 ── */
+
+.so-arch {
+  padding: 40px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.so-arch-col-group {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.so-arch-col {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 20px 16px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.so-arch-label {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.so-arch-sub {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.so-arch-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.so-arch-item {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--text);
+  text-align: center;
+  background: var(--surface);
+}
+
+.so-arch-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 12px;
+  gap: 4px;
+}
+
+.so-arch-arrow-line {
+  font-size: 20px;
+  color: var(--orange);
+}
+
+.so-arch-arrow-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+}
+
+/* ── prompt / model 时序视图 ── */
+
+.so-flow {
+  padding: 32px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.so-flow-steps {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 340px;
+  flex: 1;
+  max-width: 500px;
+}
+
+.so-flow-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.so-flow-node {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  transition: all 0.3s ease;
+}
+
+.so-flow-node.active {
+  border-color: var(--orange);
+  box-shadow: 0 0 16px var(--glow-orange);
+}
+
+.so-flow-node.done {
+  border-color: var(--green);
+  opacity: 0.7;
+}
+
+.so-flow-num {
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  border-right: 1px solid var(--border);
+  background: var(--surface-2);
+  flex-shrink: 0;
+}
+
+.so-flow-body {
+  flex: 1;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.so-flow-label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.so-flow-code {
+  font-size: 10px;
+  color: var(--text-dim);
+  word-break: break-all;
+}
+
+.so-flow-desc {
+  font-size: 10px;
+  color: var(--purple);
+}
+
+.so-flow-arrow {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-dim);
+  padding: 6px 0;
+  line-height: 1;
+}
+
+/* ── Step4 分支：overflow vs threshold ── */
+
+.so-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.so-branch-arrow {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-dim);
+  padding: 6px 0;
+}
+
+.so-branch-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.so-branch-box {
+  flex: 1;
+  min-width: 140px;
+  border: 1px solid var(--border);
+  padding: 12px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.so-branch-box.overflow {
+  border-color: var(--red);
+}
+
+.so-branch-box.threshold {
+  border-color: var(--yellow);
+}
+
+.so-branch-title {
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.so-branch-box.overflow .so-branch-title {
+  color: var(--red);
+}
+
+.so-branch-box.threshold .so-branch-title {
+  color: var(--yellow);
+}
+
+.so-branch-text {
+  font-size: 10px;
+  color: var(--text);
+}
+
+.so-branch-note {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* ── 模型切换洞察框 ── */
+
+.so-insight {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.so-insight-arrow {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-dim);
+  padding: 6px 0;
+}
+
+.so-insight-box {
+  border: 1px solid var(--green);
+  padding: 14px;
+  background: var(--bg);
+}
+
+.so-insight-title {
+  font-size: 12px;
+  color: var(--green);
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.so-insight-text {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ── 侧栏 ── */
+
+.so-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 220px;
+  max-width: 260px;
+  flex-shrink: 0;
+}
+
+.so-side-section {
+  border: 1px solid var(--border);
+  padding: 12px;
+  background: var(--bg);
+}
+
+.so-side-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.so-side-val {
+  font-size: 13px;
+  color: var(--orange);
+}
+
+.so-side-desc {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.so-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  padding: 4px 0;
+}
+
+.so-status-key {
+  color: var(--text-dim);
+}
+
+.so-status-val {
+  color: var(--text);
+}
+
+.so-status-val.on {
+  color: var(--green);
+}
+
+.so-status-val.off {
+  color: var(--text-dim);
+}
+
+/* ── 底部状态栏 ── */
+
+.so-footer {
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+}

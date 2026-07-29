@@ -90,7 +90,7 @@
 }
 
 .skd-file.invalid {
-  border-color: #ff3333;
+  border-color: var(--red);
 }
 
 .skd-filename {
@@ -103,7 +103,7 @@
 }
 
 .skd-file.invalid .skd-badge {
-  color: #ff3333;
+  color: var(--red);
 }
 
 .skd-step {
@@ -117,8 +117,8 @@
 }
 
 .skd-step.warn {
-  border-color: #ffcc00;
-  color: #ffcc00;
+  border-color: var(--yellow);
+  color: var(--yellow);
 }
 
 .skd-step-name {

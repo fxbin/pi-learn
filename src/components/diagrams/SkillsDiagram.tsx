@@ -33,7 +33,7 @@ export default function SkillsDiagram() {
   };
 
   return (
-    <div className="skd-root">
+    <div className="skd-root diagram">
       <div className="skd-header">
         <span className="skd-title">SKILLS AS PROMPT FILES</span>
         <div className="skd-controls">

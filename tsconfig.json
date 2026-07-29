@@ -8,7 +8,7 @@
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"]
+    "types": ["node", "astro/client"]
   },
   "include": ["s*/**/*.ts", "extras/**/*.ts"]
 }

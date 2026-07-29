@@ -1,0 +1,279 @@
+.drd-root {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	margin: 32px 0;
+	font-family: var(--font-mono);
+}
+
+.drd-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 16px 20px;
+	border-bottom: 1px solid var(--border);
+}
+
+.drd-title {
+	font-size: 12px;
+	letter-spacing: 0.15em;
+	color: var(--text-dim);
+}
+
+.drd-controls {
+	display: flex;
+	gap: 8px;
+}
+
+.drd-controls button {
+	border: 1px solid var(--border);
+	background: transparent;
+	color: var(--text);
+	padding: 6px 12px;
+	font-family: var(--font-mono);
+	font-size: 11px;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.drd-controls button:hover {
+	border-color: var(--orange);
+	color: var(--orange);
+}
+
+/* 双面板舞台：左 previousLines / 右 newLines */
+.drd-stage {
+	display: flex;
+	gap: 24px;
+	padding: 32px 24px;
+	position: relative;
+	justify-content: center;
+	flex-wrap: wrap;
+	transition: all 0.3s ease;
+}
+
+/* synchronized output 阶段：整段用紫色虚线边框包裹 */
+.drd-stage.synced {
+	border: 1px dashed var(--purple);
+	margin: 12px;
+	border-radius: 4px;
+}
+
+.drd-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 220px;
+}
+
+.drd-panel-label {
+	font-size: 10px;
+	color: var(--text-dim);
+	letter-spacing: 0.1em;
+	margin-bottom: 8px;
+}
+
+.drd-cell {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+	border: 1px solid var(--border);
+	background: var(--bg);
+	font-size: 12px;
+	transition: all 0.3s ease;
+	position: relative;
+	min-height: 34px;
+}
+
+.drd-row-idx {
+	color: var(--text-dim);
+	font-size: 10px;
+	min-width: 12px;
+}
+
+.drd-row-text {
+	color: var(--text);
+}
+
+/* 差分高亮：变化行用黄色边框 + 文字 */
+.drd-cell.diff-hl {
+	border-color: var(--yellow);
+}
+
+.drd-cell.diff-hl .drd-row-text {
+	color: var(--yellow);
+}
+
+/* 重画完成：变化行变绿 */
+.drd-cell.redraw-done {
+	border-color: var(--green);
+}
+
+.drd-cell.redraw-done .drd-row-text {
+	color: var(--green);
+}
+
+/* firstChanged / lastChanged 标记 */
+.drd-marker {
+	position: absolute;
+	right: 6px;
+	font-size: 9px;
+	padding: 1px 4px;
+	letter-spacing: 0.05em;
+	background: var(--surface);
+	color: var(--yellow);
+	border: 1px solid var(--yellow);
+}
+
+.drd-marker-first {
+	top: -8px;
+}
+
+.drd-marker-last {
+	bottom: -8px;
+}
+
+/* 光标标记 */
+.drd-cursor {
+	margin-left: auto;
+	font-size: 10px;
+	color: var(--orange);
+	animation: drd-blink 0.8s infinite;
+}
+
+@keyframes drd-blink {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.3;
+	}
+}
+
+/* synchronized output 上下封带 */
+.drd-sync-band {
+	position: absolute;
+	left: 0;
+	right: 0;
+	text-align: center;
+	font-size: 10px;
+	color: var(--purple);
+	background: var(--surface);
+	padding: 3px 0;
+	letter-spacing: 0.1em;
+}
+
+.drd-sync-top {
+	top: -1px;
+}
+
+.drd-sync-bottom {
+	bottom: -1px;
+}
+
+/* 底部三策略决策树 */
+.drd-decision {
+	border-top: 1px solid var(--border);
+	padding: 16px 20px;
+	background: var(--surface-2);
+}
+
+.drd-decision-title {
+	font-size: 10px;
+	color: var(--text-dim);
+	letter-spacing: 0.15em;
+	margin-bottom: 10px;
+}
+
+.drd-decision-tree {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.drd-strat {
+	display: flex;
+	gap: 12px;
+	font-size: 11px;
+	padding: 6px 10px;
+	border: 1px solid var(--border);
+	background: var(--bg);
+	opacity: 0.5;
+	transition: all 0.3s ease;
+}
+
+.drd-strat.active {
+	opacity: 1;
+	border-color: var(--orange);
+}
+
+.drd-strat-cond {
+	color: var(--text-dim);
+	min-width: 140px;
+}
+
+.drd-strat.active .drd-strat-cond {
+	color: var(--orange);
+}
+
+.drd-strat-act {
+	color: var(--text);
+}
+
+/* 底部状态栏 */
+.drd-footer {
+	border-top: 1px solid var(--border);
+	padding: 16px 20px;
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.drd-step-info {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+}
+
+.drd-step-num {
+	font-size: 11px;
+	color: var(--orange);
+	letter-spacing: 0.1em;
+}
+
+.drd-step-label {
+	font-size: 13px;
+	color: var(--text);
+}
+
+.drd-step-desc {
+	font-size: 11px;
+	color: var(--text-dim);
+	margin-left: auto;
+}
+
+@media (max-width: 768px) {
+	.drd-stage {
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	.drd-panel {
+		min-width: 100%;
+	}
+
+	.drd-strat {
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.drd-strat-cond {
+		min-width: 0;
+	}
+
+	.drd-step-desc {
+		margin-left: 0;
+	}
+}

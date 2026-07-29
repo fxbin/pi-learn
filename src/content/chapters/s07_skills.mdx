@@ -209,13 +209,13 @@ s07: Skills（加载 2 个 skill）
 
 ## 源码锚点
 
-mini-pi 的 skills 是教学级简化。真 pi 的实现在 `.reference/pi/packages/agent/src/harness/skills.ts`，先读这个文件，回答三个问题（答案就在代码里）：
+mini-pi 的 skills 是教学级简化。真 pi 的实现在 [`packages/agent/src/harness/skills.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/harness/skills.ts)，先读这个文件，回答三个问题（答案就在代码里）：
 
 1. `loadSkills`（第 49 行）遇到目录不存在时走 `continue` 而非 `push diagnostic`——和我们的"statSync 抛就返回空"一样吗？为什么 pi 把 `not_found` 单独处理，其他错误才进 diagnostic？（提示：`error.code !== "not_found"` 这个判断在防什么噪音）
 2. `loadSkillFromFile`（第 233 行）解析 frontmatter 后，如果 `description` 为空就返回 `skill: null`——我们的 `parseSkill` 不检查 description。pi 为什么必须要有 description？（提示：看 `formatSkillsForSystemPrompt` 怎么生成 system prompt，description 在哪里用）
 3. 真 pi 用 `SKILL.md`（固定文件名）+ 子目录结构，我们用 `*.md`（任意文件名）+ 平铺目录。pi 的方式多了什么能力？（提示：一个 skill 可以带附属文件，比如 `code-review/SKILL.md` + `code-review/rubric.json`）
 
-再对照 `.reference/pi/packages/agent/src/harness/system-prompt.ts` 的 `formatSkillsForSystemPrompt`：它只把 `name` + `description` + `location` 放进 system prompt，**不放 content**。我们直接把 content 全塞进去。这是两种不同的策略——pi 是"目录在 prompt，正文按需加载"，我们是"全塞进去"。各自代价是什么？
+再对照 [`packages/agent/src/harness/system-prompt.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/harness/system-prompt.ts) 的 `formatSkillsForSystemPrompt`：它只把 `name` + `description` + `location` 放进 system prompt，**不放 content**。我们直接把 content 全塞进去。这是两种不同的策略——pi 是"目录在 prompt，正文按需加载"，我们是"全塞进去"。各自代价是什么？
 
 **动手任务（改 mini-pi）**：给 `loadSkills` 加一个 `maxSkills` 限制（比如 20），超过就 truncate 并加一条 diagnostic `too many skills, only loaded first 20`。再思考：为什么不直接 throw？（提示：用户往 skills/ 丢 100 个文件是合理操作，不该让 agent 启动失败）
 

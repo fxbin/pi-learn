@@ -1,0 +1,190 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+/**
+ * 番外页面。
+ * 正文章节之外的选读内容规划，当前仅占位。
+ * @author fxbin
+ */
+---
+
+<Layout title="番外 · pi-learn" description="正文之外的选读内容规划">
+  <article class="extras-page">
+    <div class="extras-main">
+      <div class="extras-meta">
+        <div class="extras-num">EXTRAS</div>
+        <h1>番外</h1>
+        <p class="extras-description">
+          正文章节之外的选读内容，按规划推进，当前尚未开始。
+        </p>
+      </div>
+
+      <div class="extras-content">
+        <h2>规划内容</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>主题</th>
+              <th>内容</th>
+              <th>pi 源码锚点</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>extensions</td>
+              <td>给真 pi 写一个扩展：agent 修改和扩展它自己</td>
+              <td><code>.pi/extensions/</code>（另有 <code>packages/coding-agent/examples/extensions/</code>，动笔前核实两处关系）</td>
+            </tr>
+            <tr>
+              <td>OAuth</td>
+              <td>订阅制账号的认证流程（device code / PKCE）</td>
+              <td><code>packages/ai/src/auth/oauth/</code></td>
+            </tr>
+            <tr>
+              <td>TUI</td>
+              <td>终端界面如何消费 agent 事件流</td>
+              <td><code>packages/tui/</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>为什么钉死在番外</h2>
+        <p>
+          这三块是生产级关注点，不是 harness 的机制内核。正文坚持"每章只加一个机制"，番外不渗入正文一个字——这是课程的范围纪律。
+        </p>
+
+        <h2>动笔前的待办</h2>
+        <ul>
+          <li>核实 extensions 锚点：<code>.pi/extensions/</code>（用户目录扩展）与 <code>packages/coding-agent/examples/extensions/</code>（示例）的分工</li>
+          <li>OAuth 章只讲一条链路（建议 device code），不铺开全部 provider</li>
+        </ul>
+
+        <p class="extras-back">
+          ← <a href="/pi-learn/">返回首页</a>
+        </p>
+      </div>
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .extras-page {
+    padding: 120px 0 80px;
+    min-height: 100vh;
+  }
+
+  .extras-main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+
+  .extras-meta {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 48px;
+    margin-bottom: 48px;
+  }
+
+  .extras-num {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--orange);
+    margin-bottom: 16px;
+  }
+
+  .extras-meta h1 {
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 20px;
+  }
+
+  .extras-description {
+    font-size: 18px;
+    color: var(--text-dim);
+    max-width: 720px;
+    line-height: 1.6;
+  }
+
+  .extras-content {
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  .extras-content h2 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    border-top: 1px solid var(--border);
+    padding-top: 32px;
+    margin-top: 48px;
+    margin-bottom: 20px;
+  }
+
+  .extras-content h3 {
+    font-size: 24px;
+    font-weight: 800;
+    margin-top: 32px;
+    margin-bottom: 16px;
+  }
+
+  .extras-content p {
+    margin-bottom: 20px;
+  }
+
+  .extras-content ul {
+    margin-bottom: 20px;
+    padding-left: 24px;
+  }
+
+  .extras-content li {
+    margin-bottom: 8px;
+  }
+
+  .extras-content a {
+    color: var(--orange);
+    border-bottom: 1px solid var(--orange);
+  }
+
+  .extras-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+
+  .extras-content th,
+  .extras-content td {
+    border: 1px solid var(--border);
+    padding: 12px;
+    text-align: left;
+  }
+
+  .extras-content th {
+    background: var(--surface);
+    font-weight: 700;
+  }
+
+  .extras-content code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--surface);
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    color: var(--green);
+  }
+
+  .extras-back {
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 768px) {
+    .extras-main {
+      padding: 0 24px;
+    }
+  }
+</style>
