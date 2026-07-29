@@ -1,0 +1,224 @@
+# s08: Provider — 一个接口，两套后端
+
+> 内部模型只有一套，线格式各有各的样。转换在边界。
+
+`...` → [s01](../s01_agent_loop/) → ... → [s07](../s07_skills/) → **`s08`** → [番外 extensions](../extras/)
+
+---
+
+## 问题
+
+s01 到 s07，所有章节的 `callLlm` 都写死了一件事：向 Anthropic 的 `/v1/messages` 发 POST。请求头是 `x-api-key` + `anthropic-version`，body 里 `system` 是独立字段，工具调用叫 `tool_use`，停止信号叫 `stop_reason`。
+
+这套形状是 Anthropic 专属的。如果你想把后端换成 OpenAI——`gpt-4o` 或者 `deepseek-chat`——你会发现：
+
+| 维度 | Anthropic | OpenAI |
+|---|---|---|
+| 端点 | `/v1/messages` | `/v1/chat/completions` |
+| 认证 | `x-api-key` 头 | `Authorization: Bearer` 头 |
+| system | body 独立字段 | 塞进 `messages[0]`，角色 `system` |
+| 工具调用 | `content[].tool_use` 块 | `tool_calls[]` 数组，`arguments` 是 JSON 字符串 |
+| 工具结果 | `user` 消息里的 `tool_result` 块 | 独立 `role: "tool"` 消息，带 `tool_call_id` |
+| 工具定义 | `input_schema` | `function.parameters`（多包一层 `type: "function"`） |
+| 停止信号 | `stop_reason: "tool_use"` | `finish_reason: "tool_calls"` |
+
+要是把这些差异散进 agent 主循环，循环本身就会被 `if (provider === "openai")` 塞满，每多一家供应商就多一层分支。循环该只关心"问模型 → 执行工具 → 回填"，不该关心 wire 格式。
+
+---
+
+## 解决方案
+
+把"怎么调 LLM"抽成一个接口，每个供应商写一份实现。主循环只跟接口对话，不知道背后是谁。
+
+```
+     ┌─────────┐     ┌──────────────┐     ┌────────────────┐
+     │  main   │ ──> │ LlmProvider  │ ──> │ Anthropic / OAI│
+     │ (loop)  │ <── │ .complete()  │ <── │  wire format   │
+     └─────────┘     └──────────────┘     └────────────────┘
+                      边界转换在此
+```
+
+接口只一个方法：
+
+```typescript
+interface LlmProvider {
+    name: string;
+    complete(messages: ChatMessage[], system: string, tools: ToolDef[]): Promise<MessagesResponse>;
+}
+```
+
+两份实现：
+
+| 实现 | 端点 | 转换量 |
+|---|---|---|
+| `AnthropicProvider` | `/v1/messages` | 零——内部模型本就是 Anthropic 形状 |
+| `OpenAIProvider` | `/v1/chat/completions` | 双向——请求 tool_use→tool_calls，响应 tool_calls→tool_use |
+
+**关键决策：内部 ChatMessage 始终用 Anthropic 形状。** 这不是偏袒 Anthropic，而是选一个"够用"的内部模型然后坚持到底。转换只发生在 `OpenAIProvider.complete()` 的边界上——进去时把内部形状翻成 OpenAI wire，出来时翻回来。主循环、工具执行、消息历史，全部不感知后端差异。
+
+这就是**消息边界**：内部模型 ≠ 线格式，边界处做一次翻译，两边互不污染。pi 的 `transform-messages.ts` 干的也是这件事，只是它还要处理 thinking 块、跨供应商 ID 规范化等更复杂的情况。
+
+`main()` 里一行切换后端：
+
+```typescript
+const provider: LlmProvider = CONFIG.provider === "openai" ? new OpenAIProvider() : new AnthropicProvider();
+```
+
+循环里 `callLlm(messages)` 变成了 `provider.complete(messages, SYSTEM_PROMPT, TOOLS)`。形状一样，后端可换。
+
+---
+
+## 工作原理
+
+打开 [code.ts](code.ts)，重点看三块。
+
+**第 1 块：接口与 AnthropicProvider。** 接口定义了边界契约——`name` 标识身份，`complete` 负责一次 LLM 调用。`AnthropicProvider` 的 `complete()` 与 s01 的 `callLlm` 几乎逐行相同：同样的端点、同样的请求头、同样的 body 结构。区别只是它现在是一个类，配置从 `CONFIG` 全局搬到了实例属性上。
+
+**第 2 块：OpenAIProvider 的边界转换。** 这是本章全部的新东西，分两个方向：
+
+*请求方向* `toWire()`：把内部消息翻成 OpenAI wire 格式。
+
+```typescript
+// system 从独立字段变成 messages[0]
+wire.push({ role: "system", content: system });
+// assistant 的 tool_use 块 → tool_calls 数组，input 序列化成 JSON 字符串
+calls.map((b) => ({ id: b.id, type: "function", function: { name: b.name, arguments: JSON.stringify(b.input) } }));
+// user 的 tool_result 块 → 独立的 role:"tool" 消息
+wire.push({ role: "tool", content: b.content, tool_call_id: b.tool_use_id });
+```
+
+注意 `arguments` 是 **JSON 字符串**——OpenAI 要求工具参数以字符串形式传输，而 Anthropic 的 `input` 是结构化对象。这是两家 wire 格式最坑的差异：同一个 `{command: "ls"}`，Anthropic 直接发对象，OpenAI 要 `JSON.stringify` 成 `'{"command":"ls"}'`。
+
+*响应方向* `fromWire()`：把 OpenAI 响应翻回内部形状。
+
+```typescript
+// tool_calls 还原成 tool_use 块，arguments 反序列化回对象
+content.push({ type: "tool_use", id: tc.id, name: tc.function.name, input: JSON.parse(tc.function.arguments) });
+// finish_reason 映射 stop_reason
+stop_reason: data.choices[0].finish_reason === "tool_calls" ? "tool_use" : "end_turn"
+```
+
+`finish_reason` 到 `stop_reason` 的映射是关键：OpenAI 的 `"tool_calls"` 和 Anthropic 的 `"tool_use"` 语义完全相同（模型要调工具），只是名字不同。主循环只认 `"tool_use"`，所以 `fromWire` 必须把 OpenAI 的名字翻译过来。
+
+**第 3 块：主循环不变。** `agentLoop` 与 s01 逐行对照，唯一区别是 `callLlm(messages)` → `provider.complete(messages, SYSTEM_PROMPT, TOOLS)`。循环本身不感知后端——这正是接口的意义。加上 s07 的 skills、s06 的 compaction、s05 的 session、s04 的 interrupt、s03 的 edit、s02 的 tools，你现在有了一个完整的 mini-pi。
+
+---
+
+## 运行
+
+**Anthropic 后端（默认）：**
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+node code.ts
+```
+
+**OpenAI 后端：**
+
+```bash
+export PROVIDER=openai
+export OPENAI_API_KEY=sk-...
+export MODEL_ID=gpt-4o
+node code.ts
+```
+
+用同一个问题分别跑两个后端，观察行为一致：`列出当前目录的文件`，两者都该调一次 bash、回填结果、输出文件列表。循环转的轮数一样，只是 wire 格式不同。
+
+---
+
+## deepseek 选读：改 baseUrl 就能换供应商
+
+[deepseek](https://api.deepseek.com) 的 API 是 **OpenAI 兼容**的——同样的 `/v1/chat/completions` 端点、同样的 `tool_calls` 格式、同样的 `Bearer` 认证。pi 源码里 `providers/deepseek.ts` 只有一件事值得关注：
+
+```typescript
+return createProvider({
+    id: "deepseek",
+    baseUrl: "https://api.deepseek.com",
+    api: openAICompletionsApi(),
+});
+```
+
+它复用的就是 OpenAI 的 API 实现，只换了 `baseUrl`。我们的 `OpenAIProvider` 同理：
+
+```bash
+export PROVIDER=openai
+export OPENAI_BASE_URL=https://api.deepseek.com
+export OPENAI_API_KEY=sk-deepseek-...
+export MODEL_ID=deepseek-chat
+node code.ts
+```
+
+不需要改一行代码——`OpenAIProvider` 的 `baseUrl` 本来就读环境变量。这就是"一个接口，多份实现"的回报：只要新供应商兼容已有实现的 wire 格式，接入成本就是改一个 URL。
+
+pi 的 `providers/` 目录下有几十家供应商，大多数（deepseek、groq、together、fireworks、moonshot……）都走 `openai-completions` API，只是 baseUrl 和模型列表不同。真正需要单独写实现的，只有 wire 格式不兼容的（如 Anthropic、Google、Bedrock）。
+
+---
+
+## 前置概念清单
+
+本章只引入五个新概念：
+
+1. **Provider 接口**：一个 `LlmProvider` 接口，多个实现——经典的策略模式，主循环只跟接口对话
+2. **消息边界**：内部模型 ≠ 线格式，转换发生在 `complete()` 边界，两边互不污染
+3. **wire 格式**：HTTP 请求/响应在网线上的实际 JSON 形状；同一次工具调用，Anthropic 和 OpenAI 各有一套表述
+4. **stop_reason 映射**：不同供应商对"模型为什么停下"用不同名字，边界处统一翻译成内部信号
+5. **OpenAI 兼容**：很多供应商复用 OpenAI 的 wire 格式，只换 baseUrl 即可接入
+
+---
+
+## 源码锚点
+
+mini-pi 的两个 provider 是教学级简化。真 pi 的供应商抽象分布在两处，先读再回答问题：
+
+**第一处：`.reference/pi/packages/ai/src/api/transform-messages.ts`**
+
+这是 pi 的消息边界转换器。读 `transformMessages` 函数（第 64 行），回答：
+
+1. 第 93-98 行：`isSameModel` 判断 assistant 消息是否来自当前模型。跨模型时 thinking 块会被丢弃或降级成 text——为什么不能原样转发？（提示：thinking 的 signature 是模型私有的）
+2. 第 136-141 行：`normalizeToolCallId` 只在跨模型时调用。Anthropic 要求 ID 匹配 `^[a-zA-Z0-9_-]+$`（最多 64 字符），OpenAI 的 ID 含 `|` 且超长。如果不规范化会怎样？
+3. 第 163-180 行：`insertSyntheticToolResults` 给"孤儿" tool_use 补造假的 tool_result。什么情况下会出现有 tool_use 但没对应 tool_result的对话？（提示：想想中断和压缩）
+
+**第二处：`.reference/pi/packages/ai/src/providers/deepseek.ts`**
+
+只有 15 行。回答：为什么 deepseek 不需要自己的 API 实现，复用 `openAICompletionsApi()` 就够了？（提示：看 baseUrl 和 api 字段）
+
+**动手任务（改 mini-pi）**：给 `OpenAIProvider` 加一个 `mistral` 模式——Mistral 的 wire 格式也是 OpenAI 兼容的，但 `tool_calls` 的 `type` 字段省略了。你的 `toWire` 和 `fromWire` 需要改什么？提示：`type: "function"` 在 OpenAI 是必填的，Mistral 不报错但也不要求。
+
+---
+
+## 妥协清单
+
+mini-pi 的 provider 比真 pi 简单很多，以及为什么省略是安全的：
+
+| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+|---|---|---|
+| 流式输出 | `StreamFunction` 逐 token 推送，每个供应商一套 stream 解析 | 非流式一次性返回，语义相同，只少了打字机效果 |
+| 内部模型独立设计 | pi 有自己的 `Message` 类型（toolCall/toolResult 独立 role），不偏向任何供应商 | 我们选 Anthropic 形状当内部模型，省掉一层翻译 |
+| 跨供应商 ID 规范化 | `normalizeToolCallId` 把 OpenAI 长 ID 压缩成 Anthropic 合法 ID | 单后端会话不会跨供应商，ID 原样传递不报错 |
+| thinking 块处理 | `transform-messages` 按模型降级/丢弃/转译 thinking | 我们没有 thinking 块，跳过整条路径 |
+| 重试与错误分类 | `retryProviderRequest` 指数退避，按状态码分类重试 | 直接抛异常终止，把失败暴露给学习者 |
+| 多供应商运行时切换 | pi 按 model 配置路由到不同 provider | `CONFIG.provider` 启动时定一次，运行中不换 |
+| tool_choice / reasoning_effort | 每家供应商独有的采样参数 | 教学不需要精细控制采样 |
+
+这张表是 mini-pi 与真 pi 的差距地图。读完 pi 的 `transform-messages.ts` 再回头看，你会看到每一项省略背后都有一道真 pi 在防的故障。
+
+---
+
+## 默写验收
+
+合上 code.ts 和本 README，打开 [practice.ts](practice.ts)，凭记忆补全：
+
+1. `LlmProvider` 接口与 `AnthropicProvider`（基本是 s01 的 callLlm 搬进类）
+2. `OpenAIProvider` 的 `toWire` 和 `fromWire`——这是本章的核心
+3. `agentLoop`（与 s01 同形，`callLlm` 换成 `provider.complete`）
+4. `main`（按 `CONFIG.provider` 选后端）
+
+通过标准：`PROVIDER=anthropic node practice.ts` 和 `PROVIDER=openai node practice.ts` 都能跑起来，完成一轮工具调用。
+
+写不出 `toWire` 说明"tool_use → tool_calls、tool_result → tool 角色消息"的映射没进脑子，回到「工作原理」第 2 块重读。写不出 `fromWire` 说明 `finish_reason → stop_reason` 的映射没记住——这个漏了循环就停不下来。
+
+---
+
+**八章走完，你已经有了一个完整的 mini-pi：** 循环（s01）、工具（s02）、编辑（s03）、中断（s04）、会话（s05）、压缩（s06）、技能（s07）、供应商（s08）。每一章只加一个概念，每一个概念都映射到真 pi 的一段源码。接下来是番外——把 mini-pi 往真 pi 方向再推一步。
+
+下一章：[番外 extensions](../extras/)

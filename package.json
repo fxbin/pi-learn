@@ -1,0 +1,23 @@
+{
+  "name": "pi-learn",
+  "private": true,
+  "version": "0.1.0",
+  "description": "基于 pi 源码，从零构建 agent harness 的学习项目",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "author": "fxbin",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2",
+    "vitepress": "^1.6.4"
+  }
+}

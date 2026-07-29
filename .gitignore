@@ -1,0 +1,21 @@
+node_modules/
+.env
+*.log
+.DS_Store
+
+# Reference repos (cloned, not part of the course)
+.reference/
+
+# Internal design artifacts (roundtable discussion, not course content)
+docs/
+
+# Virtual team state
+.vidt/
+
+# Runtime artifacts
+session.jsonl
+/skills/
+
+# VitePress build cache
+.vitepress/cache/
+.vitepress/dist/
