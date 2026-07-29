@@ -1,0 +1,29 @@
+---
+import "../styles/global.css";
+import Header from "../components/Header.astro";
+import ScrollProgress from "../components/ScrollProgress.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "基于 pi 源码，从零构建 agent harness" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <ScrollProgress />
+    <Header />
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>

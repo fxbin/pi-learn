@@ -1,0 +1,248 @@
+---
+title: Skills
+num: S07
+description: 文件即 prompt 注入 + diagnostics 优雅降级。
+order: 7
+concepts:
+  - 文件即 prompt
+  - 优雅降级
+  - diagnostic 模式
+  - XML 标签包裹
+  - 启动时加载
+---
+# s07: Skills — 文件即 prompt 注入 + 优雅降级
+
+> 把知识从代码里搬出来，放进文件。
+
+`...` → [s01](/pi-learn/chapters/s01_agent_loop/) → ... → [s06](/pi-learn/chapters/s06_compaction/) → **`s07`** → [s08 provider 抽象](/pi-learn/chapters/s08_provider/)
+
+---
+
+## 问题
+
+s01 的 agent 只有一段写死的 `SYSTEM_PROMPT`。你想让它"懂 git 怎么救场"、"懂怎么写 commit message"、"懂你这边的发版流程"——这些知识塞进 `SYSTEM_PROMPT` 字符串里，每改一条就得改代码、重启。
+
+更糟的是，不同任务想用的知识还不一样：修 bug 时想加载调试套路，写文档时想加载文档规范。写死在代码里的 prompt 没法按需切换。
+
+你需要一个机制：**把领域知识放进文件，agent 启动时读进来，拼进 system prompt**。改知识不用改代码，加知识不用重启进程。
+
+---
+
+## 解决方案
+
+把 skills 目录下的每个 `.md` 文件当成一段 prompt 注入。agent 启动时扫一遍目录，把所有文件内容拼到 `SYSTEM_PROMPT` 后面：
+
+```
+skills/
+  git-rescue.md      →  # git-rescue \n 当 git 状态混乱时...
+  commit-style.md    →  # commit-style \n 提交信息按这样写...
+  release-flow.md    →  # release-flow \n 发版步骤...
+
+SYSTEM_PROMPT = BASE_PROMPT
+             + <skill name="git-rescue">...</skill>
+             + <skill name="commit-style">...</skill>
+             + <skill name="release-flow">...</skill>
+```
+
+文件格式极简：首行 `# Skill Name`，其余是正文。没有 frontmatter，没有触发条件——那是 pi 的复杂度，教学版只要"name + 内容"。
+
+但有一个工程决策比格式更重要：**坏文件不能让 agent 崩**。skills 目录是用户写的，可能有编码错误、可能权限不对、可能首行不是 `#`。`loadSkills` 不抛异常，而是返回 `{ skills, diagnostics }`——能读的读进来，读不了的收集成一条诊断消息，agent 照常启动。**生产软件容忍坏文件；玩具直接崩。**
+
+---
+
+## 工作原理
+
+打开 [code.ts](/pi-learn/chapters/s07_skills/code.ts)，重点看三块，其余是 s01 原样。
+
+**第 1 块：扫描目录，逐文件加载。** `loadSkills` 是本章的核心：
+
+```typescript
+function loadSkills(dir: string): { skills: LoadedSkill[]; diagnostics: string[] } {
+	// ...
+	for (const entry of entries.sort()) {
+		if (!entry.endsWith(".md")) continue;
+		const fullPath = join(dir, entry);
+		let raw: string;
+		try {
+			raw = readFileSync(fullPath, "utf-8");
+		} catch (err) {
+			diagnostics.push(`read failed: ${fullPath}: ${(err as Error).message}`);
+			continue;
+		}
+		const parsed = parseSkill(raw);
+		if (!parsed) {
+			diagnostics.push(`parse failed: ${fullPath}: expected first line "# Skill Name"`);
+			continue;
+		}
+		skills.push(parsed);
+	}
+	return { skills, diagnostics };
+}
+```
+
+三个错误出口，每个都走 `diagnostics.push` + `continue`，绝不 throw：
+
+| 错误 | 处理 |
+|---|---|
+| 目录不存在 | `statSync` 抛 → catch → 返回空（首次使用是常态，不算错） |
+| 单文件读失败（权限、编码、是目录） | `readFileSync` 抛 → catch → diagnostic，继续下一个文件 |
+| 解析失败（首行不是 `# Name`） | `parseSkill` 返回 null → diagnostic，继续 |
+
+对比"读失败就 throw"的版本：一个坏文件会让整个 agent 启动失败，用户连 REPL 都进不去。这就是玩具和生产软件的分水岭。
+
+**第 2 块：解析格式。** 教学版的 skill 文件长这样：
+
+```markdown
+# git-rescue
+
+当 git 状态混乱时，按顺序检查：
+1. git status
+2. git log --oneline -10
+3. git reflog
+```
+
+`parseSkill` 只做一件事：正则匹配首行 `# Name`，剩下的是 body：
+
+```typescript
+function parseSkill(raw: string): LoadedSkill | null {
+	const trimmed = raw.trimStart();
+	const match = /^#\s+(.+?)\s*$/m.exec(trimmed);
+	if (!match) return null;
+	const name = match[1];
+	const body = trimmed.slice(match[0].length).trim();
+	return { name, content: body };
+}
+```
+
+没有 YAML frontmatter，没有 `description` 字段，没有触发条件。pi 的 skill 有这些是因为它要做"按需加载"（catalog 在 system prompt，正文按需 inject）；教学版一次性全注入，名字和正文就够了。
+
+**第 3 块：拼进 system prompt。** 启动时一次性拼好，整个会话复用：
+
+```typescript
+function buildSystemPrompt(skills: LoadedSkill[]): string {
+	if (skills.length === 0) return BASE_PROMPT;
+	const blocks = skills
+		.map((s) => `<skill name="${s.name}">\n${s.content}\n</skill>`)
+		.join("\n\n");
+	return `${BASE_PROMPT}\n\nThe following skills provide specialized instructions:\n\n${blocks}`;
+}
+```
+
+用 XML 标签包裹是有讲究的：模型对 `<skill name="...">` 这种结构化标签的辨识度比纯文本高，能更清楚地区分"这是 base 指令"和"这是注入的领域知识"。pi 的 `formatSkillsForSystemPrompt` 也是用 `<available_skills>` + `<skill>` XML 块。
+
+`main` 里加载一次，`agentLoop` 每轮把同一份 `system` 传给 `callLlm`。没有"按需加载"——所有 skill 全程在 prompt 里，简单但费 token。这是教学版的妥协，见下方清单。
+
+---
+
+## 运行
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+export MODEL_ID=claude-sonnet-4-5     # 可选，有默认值
+node code.ts
+```
+
+先建一两个 skill 文件看效果：
+
+```bash
+mkdir -p skills
+cat > skills/git-rescue.md <<'EOF'
+# git-rescue
+
+当 git 状态混乱时，按顺序检查：
+1. git status
+2. git log --oneline -10
+3. git reflog
+4. git stash list
+EOF
+
+cat > skills/commit-style.md <<'EOF'
+# commit-style
+
+提交信息格式：type(scope): subject
+type ∈ feat|fix|docs|refactor|test|chore
+EOF
+```
+
+启动后会看到：
+
+```
+s07: Skills（加载 2 个 skill）
+  - git-rescue
+  - commit-style
+输入问题，回车发送。输入 q 退出。
+```
+
+测一下优雅降级——故意造个坏文件：
+
+```bash
+echo "这个文件首行不是 # 开头" > skills/broken.md
+node code.ts
+```
+
+输出会多一行黄色警告，但 agent 照常启动，另外两个 skill 照常加载：
+
+```
+s07: Skills（加载 2 个 skill）
+[skill warn] parse failed: skills/broken.md: expected first line "# Skill Name"
+  - commit-style
+  - git-rescue
+```
+
+---
+
+## 前置概念清单
+
+本章只引入五个新概念：
+
+1. **文件即 prompt**：把领域知识写成 `.md` 文件，启动时读进来拼进 system prompt，改知识不用改代码
+2. **优雅降级**：坏文件收集成 diagnostic 继续跑，不抛异常；生产软件容忍坏输入，玩具才崩
+3. **diagnostic 模式**：函数返回 `{ 好结果, 坏消息[] }` 而非 throw，调用方决定怎么处理坏消息
+4. **XML 标签包裹**：用 `<skill name="...">` 包裹注入内容，模型对结构化标签的辨识度高于纯文本
+5. **启动时加载**：skills 在 `main` 里一次性加载、拼进 system prompt，整个会话复用，没有按需加载
+
+---
+
+## 源码锚点
+
+mini-pi 的 skills 是教学级简化。真 pi 的实现在 `.reference/pi/packages/agent/src/harness/skills.ts`，先读这个文件，回答三个问题（答案就在代码里）：
+
+1. `loadSkills`（第 49 行）遇到目录不存在时走 `continue` 而非 `push diagnostic`——和我们的"statSync 抛就返回空"一样吗？为什么 pi 把 `not_found` 单独处理，其他错误才进 diagnostic？（提示：`error.code !== "not_found"` 这个判断在防什么噪音）
+2. `loadSkillFromFile`（第 233 行）解析 frontmatter 后，如果 `description` 为空就返回 `skill: null`——我们的 `parseSkill` 不检查 description。pi 为什么必须要有 description？（提示：看 `formatSkillsForSystemPrompt` 怎么生成 system prompt，description 在哪里用）
+3. 真 pi 用 `SKILL.md`（固定文件名）+ 子目录结构，我们用 `*.md`（任意文件名）+ 平铺目录。pi 的方式多了什么能力？（提示：一个 skill 可以带附属文件，比如 `code-review/SKILL.md` + `code-review/rubric.json`）
+
+再对照 `.reference/pi/packages/agent/src/harness/system-prompt.ts` 的 `formatSkillsForSystemPrompt`：它只把 `name` + `description` + `location` 放进 system prompt，**不放 content**。我们直接把 content 全塞进去。这是两种不同的策略——pi 是"目录在 prompt，正文按需加载"，我们是"全塞进去"。各自代价是什么？
+
+**动手任务（改 mini-pi）**：给 `loadSkills` 加一个 `maxSkills` 限制（比如 20），超过就 truncate 并加一条 diagnostic `too many skills, only loaded first 20`。再思考：为什么不直接 throw？（提示：用户往 skills/ 丢 100 个文件是合理操作，不该让 agent 启动失败）
+
+---
+
+## 妥协清单
+
+mini-pi 的 skills 比真 pi 简单很多，以及为什么省略是安全的：
+
+| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+|---|---|---|
+| YAML frontmatter | `parseFrontmatter` 解析 `name`/`description`/`disable-model-invocation` | 教学版首行 `# Name` 足够；没有按需加载，description 无处用 |
+| 按需加载 | system prompt 只放 catalog，模型调 `load_skill` 工具取正文 | 全部一次性注入更简单；token 费但教学场景 skill 少 |
+| 递归扫描 | `loadSkillsFromDirInternal` 递归进子目录，支持 `code-review/SKILL.md` 结构 | 平铺一层足够演示"文件即 prompt"；递归加复杂度不加新概念 |
+| ignore 文件 | 读 `.gitignore`/`.ignore` 跳过被忽略的 skill | skills/ 是用户自管目录，不混在仓库根，无需 ignore |
+| name 校验 | `validateName` 检查小写、连字符、长度、不与父目录名冲突 | 教学版不暴露 skill 给外部 API，名字只用于显示 |
+| diagnostic 类型码 | `SkillDiagnosticCode` 枚举 `read_failed`/`parse_failed`/... | 字符串消息够用；类型码是为程序化处理，我们只打印 |
+| 递归错误隔离 | `Result<T, E>` 类型包装每个 IO 操作 | try/catch + diagnostic 字符串更易读，教学版优先可读性 |
+
+这张表的每一行都是真 pi 多花的工程量。读完 `skills.ts` 再回头看，你会更清楚每一项在防什么故障。
+
+---
+
+## 默写验收
+
+合上 code.ts 和本 README，打开 [practice.ts](/pi-learn/chapters/s07_skills/practice.ts)，凭记忆补全三个新函数：`loadSkills`、`parseSkill`、`buildSystemPrompt`，以及改写 `main`（启动时加载 skills、构建 system、传给 agentLoop）。`callLlm`、`runBash`、`agentLoop` 是 s01 原样稍改（多传一个 system 参数），写不出可以查。
+
+通过标准：`node practice.ts` 跑起来，建 2 个 skill 文件能加载、打印名字；故意造一个首行不是 `#` 的坏文件，能看到黄色 `[skill warn]` 但 agent 照常启动。
+
+写不出 `loadSkills` 的三道 try/catch + continue，说明"优雅降级"没进脑子，回到「工作原理」第 1 块重读。写不出 `buildSystemPrompt` 的 XML 包裹，说明"文件即 prompt 注入"的拼接逻辑没理解，回到第 3 块。
+
+---
+
+下一章：[s08 provider 抽象](/pi-learn/chapters/s08_provider/)

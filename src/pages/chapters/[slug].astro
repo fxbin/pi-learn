@@ -1,0 +1,188 @@
+---
+import { getCollection, render } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+
+/**
+ * 章节详情页动态路由。
+ * @author fxbin
+ */
+export async function getStaticPaths() {
+  const chapters = await getCollection("chapters");
+  return chapters.map((entry) => ({
+    params: { slug: entry.id.replace(/\.md$/, "") },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+
+<Layout title={`${entry.data.num} ${entry.data.title} · pi-learn`} description={entry.data.description}>
+  <article class="chapter-page">
+    <div class="container">
+      <div class="chapter-meta">
+        <div class="chapter-num">{entry.data.num}</div>
+        <h1>{entry.data.title}</h1>
+        <p class="chapter-description">{entry.data.description}</p>
+        {entry.data.concepts && (
+          <div class="concept-list">
+            <span class="concept-label">前置概念</span>
+            {entry.data.concepts.map((c) => <span class="concept-tag">{c}</span>)}
+          </div>
+        )}
+      </div>
+      <div class="chapter-content">
+        <Content />
+      </div>
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .chapter-page {
+    padding: 120px 0 80px;
+  }
+
+  .chapter-meta {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 48px;
+    margin-bottom: 48px;
+  }
+
+  .chapter-num {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--orange);
+    margin-bottom: 16px;
+  }
+
+  .chapter-meta h1 {
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 20px;
+  }
+
+  .chapter-description {
+    font-size: 18px;
+    color: var(--text-dim);
+    max-width: 720px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  .concept-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .concept-label {
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .concept-tag {
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    color: var(--green);
+  }
+
+  .chapter-content {
+    max-width: 820px;
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  .chapter-content :global(h2),
+  .chapter-content :global(h3),
+  .chapter-content :global(h4) {
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-top: 48px;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  .chapter-content :global(h2) {
+    font-size: 32px;
+    border-top: 1px solid var(--border);
+    padding-top: 32px;
+  }
+
+  .chapter-content :global(h3) {
+    font-size: 24px;
+  }
+
+  .chapter-content :global(p) {
+    margin-bottom: 20px;
+  }
+
+  .chapter-content :global(ul),
+  .chapter-content :global(ol) {
+    margin-bottom: 20px;
+    padding-left: 24px;
+  }
+
+  .chapter-content :global(li) {
+    margin-bottom: 8px;
+  }
+
+  .chapter-content :global(a) {
+    color: var(--orange);
+    border-bottom: 1px solid var(--orange);
+  }
+
+  .chapter-content :global(pre) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    overflow-x: auto;
+    margin: 24px 0;
+  }
+
+  .chapter-content :global(code) {
+    font-family: var(--font-mono);
+    font-size: 14px;
+  }
+
+  .chapter-content :global(:not(pre) > code) {
+    background: var(--surface);
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    color: var(--green);
+  }
+
+  .chapter-content :global(blockquote) {
+    border-left: 4px solid var(--orange);
+    padding-left: 20px;
+    margin: 24px 0;
+    color: var(--text-dim);
+  }
+
+  .chapter-content :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+
+  .chapter-content :global(th),
+  .chapter-content :global(td) {
+    border: 1px solid var(--border);
+    padding: 12px;
+    text-align: left;
+  }
+
+  .chapter-content :global(th) {
+    background: var(--surface);
+    font-weight: 700;
+  }
+</style>

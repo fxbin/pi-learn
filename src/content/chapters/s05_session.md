@@ -1,8 +1,20 @@
+---
+title: Session
+num: S05
+description: jsonl append-only 持久化 + 断点续跑。
+order: 5
+concepts:
+  - JSONL (JSON Lines)
+  - append-only
+  - Event Sourcing
+  - resume（断点续传）
+  - 持久化点（persistence point）
+---
 # s05: Session / JSONL — append-only 持久化与 resume
 
 > 消息数组是 agent 的全部状态。把它落盘，就能断点续传。
 
-`s01` → `s02` → `s03` → `s04` → **`s05`** → [s06](../s06_compaction/)
+`s01` → `s02` → `s03` → `s04` → **`s05`** → [s06](/pi-learn/chapters/s06_compaction/)
 
 ---
 
@@ -43,7 +55,7 @@ session.jsonl
 
 ## 工作原理
 
-打开 [code.ts](code.ts)，在 s01 基础上只加了三块东西。
+打开 [code.ts](/pi-learn/chapters/s05_session/code.ts)，在 s01 基础上只加了三块东西。
 
 **第 1 块：`saveMessages` —— 写入端。** 核心就一行：
 
@@ -138,7 +150,7 @@ mini-pi 比真 pi 少做了什么，以及为什么省略是安全的：
 
 ## 默写验收
 
-合上 code.ts 和本 README，打开 [practice.ts](practice.ts)，凭记忆补全三个函数体：`saveMessages`、`loadMessages`、`agentLoop`（带持久化点）。
+合上 code.ts 和本 README，打开 [practice.ts](/pi-learn/chapters/s05_session/practice.ts)，凭记忆补全三个函数体：`saveMessages`、`loadMessages`、`agentLoop`（带持久化点）。
 
 通过标准：
 1. `node practice.ts` 跑起来，能正常对话、能调 bash
@@ -149,4 +161,4 @@ mini-pi 比真 pi 少做了什么，以及为什么省略是安全的：
 
 ---
 
-下一章：[s06 compaction — 上下文预算、溢出检测与摘要](../s06_compaction/)
+下一章：[s06 compaction — 上下文预算、溢出检测与摘要](/pi-learn/chapters/s06_compaction/)

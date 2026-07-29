@@ -9,15 +9,23 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "docs:dev": "vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
   },
   "author": "fxbin",
   "license": "MIT",
+  "dependencies": {
+    "@astrojs/mdx": "^4.2.6",
+    "@astrojs/react": "^4.2.6",
+    "@types/react": "^19.1.4",
+    "@types/react-dom": "^19.1.5",
+    "astro": "^5.13.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
   "devDependencies": {
     "@types/node": "^26.1.2",
-    "typescript": "^7.0.2",
-    "vitepress": "^1.6.4"
+    "typescript": "^7.0.2"
   }
 }

@@ -1,4 +1,4 @@
-name: Deploy VitePress site to Pages
+name: Deploy Astro site to Pages
 
 on:
   push:
@@ -24,11 +24,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run docs:build
+      - run: npm run build
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .vitepress/dist
+          path: dist
 
   deploy:
     needs: build

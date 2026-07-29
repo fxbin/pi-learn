@@ -16,6 +16,9 @@ docs/
 session.jsonl
 /skills/
 
-# VitePress build cache
-.vitepress/cache/
-.vitepress/dist/
+# Astro build cache and output
+.astro/
+dist/
+
+# Prototype previews
+.prototype/

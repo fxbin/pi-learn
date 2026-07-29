@@ -1,0 +1,82 @@
+---
+interface Props {
+  num: string;
+  title: string;
+  description: string;
+  href: string;
+}
+
+const { num, title, description, href } = Astro.props;
+---
+
+<a href={href} class="chapter-card">
+  <div class="chapter-status"></div>
+  <div class="chapter-num">{num}</div>
+  <div class="chapter-title">{title}</div>
+  <div class="chapter-desc">{description}</div>
+</a>
+
+<style>
+  .chapter-card {
+    background: var(--surface);
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    display: block;
+  }
+
+  .chapter-card:hover {
+    background: var(--surface-2);
+  }
+
+  .chapter-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--orange);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .chapter-card:hover::before {
+    transform: scaleY(1);
+  }
+
+  .chapter-num {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--orange);
+    margin-bottom: 16px;
+  }
+
+  .chapter-title {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  .chapter-desc {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .chapter-status {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+</style>

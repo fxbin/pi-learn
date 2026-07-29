@@ -1,0 +1,33 @@
+---
+/**
+ * 顶部滚动进度条（机械卷尺效果）。
+ * @author fxbin
+ */
+---
+
+<div class="progress-tape" id="progress-tape"></div>
+
+<style>
+  .progress-tape {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--orange);
+    width: 0%;
+    z-index: 2000;
+    box-shadow: 0 0 10px rgba(255, 77, 0, 0.5);
+    transition: width 0.1s linear;
+  }
+</style>
+
+<script>
+  const tape = document.getElementById("progress-tape");
+  if (tape) {
+    window.addEventListener("scroll", () => {
+      const h = document.documentElement;
+      const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight);
+      tape.style.width = `${scrolled * 100}%`;
+    });
+  }
+</script>

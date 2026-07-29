@@ -1,0 +1,177 @@
+---
+title: Tools
+num: S02
+description: bash / read / write 三工具 + dispatch 表 + 路径校验。
+order: 2
+concepts:
+  - dispatch 表
+  - ToolUseBlock.input 泛化
+  - 路径校验
+  - 输出截断
+  - shell vs 直调
+---
+# s02: bash/read/write — 三个"无聊"工具与 dispatch 表
+
+> 一个工具太少了，三个刚好。循环不变，只换一张表。
+
+s01 → `s02` → [s03](/pi-learn/chapters/s03_edit_queue/) → [s04](/pi-learn/chapters/s04_interrupt/) → ... → s08
+
+---
+
+## 问题
+
+s01 的 agent 只有 bash。想让模型读个文件？`cat`。写文件？`echo >`。改文件？`sed -i`。每件事都走 shell，shell 语法又碎又险：引号转义、空格路径、glob 展开处处是坑。
+
+更关键的问题：s01 的循环里硬编码了 `runBash(block.input.command)`。要加第二个工具，就得改 agentLoop。加十个工具呢？循环就成了一坨 if-else。
+
+两个问题，两个解法：把文件操作从 shell 里拆出来 + 把工具执行从循环里拆出来。
+
+---
+
+## 解决方案
+
+**三个工具**：
+- `bash`：跑 shell 命令（保留 s01 的能力）
+- `read`：用 `readFileSync` 读文件，不经过 shell
+- `write`：用 `writeFileSync` 写文件，不经过 shell
+
+**dispatch 表**：工具名 → 处理函数的映射。循环里一行分发：`handlers[block.name](block.input)`。加工具只改表，不改循环。
+
+```
+tool_use.name ──┬──→ handlers["bash"]  ──→ runBash(input)
+                ├──→ handlers["read"]  ──→ readFile(input)
+                └──→ handlers["write"] ──→ writeFile(input)
+```
+
+`ToolUseBlock.input` 从 s01 的 `{ command: string }` 泛化为 `Record<string, unknown>`——因为不同工具有不同参数，循环不能再假设 input 形状。
+
+---
+
+## 工作原理
+
+打开 [code.ts](/pi-learn/chapters/s02_tools/code.ts)，分四块看。
+
+**第 1 块：路径校验。** read/write 必须先确认路径落在 cwd 子树内——
+
+```typescript
+function safePath(raw: string): string {
+    const abs = resolve(process.cwd(), raw);
+    const rel = relative(process.cwd(), abs);
+    if (rel.startsWith("..")) {
+        throw new Error(`path outside cwd: ${raw}`);
+    }
+    return abs;
+}
+```
+
+`resolve` 把相对路径补成绝对路径，`relative` 算出它相对 cwd 的偏移。一旦开头是 `..` 就意味着要跳出 cwd，拒绝。教学版不处理符号链接——真 pi 用 `realpath` 归一化后再比对。
+
+**第 2 块：三个工具。** 三个函数签名一致：`(input: Record<string, unknown>) => string`，便于塞进同一张表——
+
+```typescript
+function runBash(input: Record<string, unknown>): string {
+    const command = String(input.command ?? "");
+    // 黑名单 → spawnSync → 截断
+}
+
+function readFile(input: Record<string, unknown>): string {
+    const path = String(input.path ?? "");
+    // safePath → readFileSync → 截断到 maxReadChars
+}
+
+function writeFile(input: Record<string, unknown>): string {
+    const path = String(input.path ?? "");
+    const content = String(input.content ?? "");
+    // safePath → mkdirSync 父目录 → writeFileSync
+}
+```
+
+read/write 不再过 shell：没有引号转义、没有 glob、没有 shell 解释器介入，路径就是路径，内容就是内容。
+
+**第 3 块：dispatch 表。** 全章最短也最关键——
+
+```typescript
+const handlers: Record<string, (input: Record<string, unknown>) => string> = {
+    bash: runBash,
+    read: readFile,
+    write: writeFile,
+};
+```
+
+循环里一行分发：`const output = handlers[block.name]?.(block.input) ?? "Error: unknown tool"`。加第四个工具？在表里加一行；循环不动。
+
+**第 4 块：循环不变。** agentLoop 的形状和 s01 一模一样，只是工具执行从硬编码 bash 变成了查表分发。
+
+---
+
+## 运行
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+node code.ts
+```
+
+试这三个提示：
+
+1. `读一下 package.json 的前几行`（read 一轮就停）
+2. `在 notes.md 里写入 hello world`（write 一轮就停）
+3. `读 notes.md，把第一行改成大写后写回去`（read + write 两轮）
+
+观察：路径越界（如 `read /etc/passwd`）会被 safePath 拒绝，模型看到错误后会自行换路径。
+
+---
+
+## 前置概念清单
+
+1. **dispatch 表**：`Record<string, Handler>` 映射，工具名 → 处理函数；新增工具只改表不改循环
+2. **ToolUseBlock.input 泛化**：从 `{ command: string }` 改成 `Record<string, unknown>`，因为不同工具有不同参数
+3. **路径校验**：read/write 前先 `resolve + relative` 检查路径是否落在 cwd 子树内，防越界
+4. **输出截断**：read 截到 50000 字符，避免大文件灌爆上下文窗口
+5. **shell vs 直调**：read/write 用 node:fs 直读直写，绕过 shell 的引号/转义/glob 噪音
+
+---
+
+## 源码锚点
+
+mini-pi 的三个工具，在真 pi 里对应四个文件：
+
+1. `.reference/pi/packages/agent/src/harness/tools/bash.ts` — bash 工具，流式输出 + 截断
+2. `.reference/pi/packages/agent/src/harness/tools/read.ts` — read 工具，支持图片 + offset/limit 分页
+3. `.reference/pi/packages/agent/src/harness/tools/write.ts` — write 工具，自动建父目录
+4. `.reference/pi/packages/agent/src/harness/tools/index.ts` — 注册表汇总导出
+
+先读一遍，再回答三个问题（答案就在代码里）：
+
+1. `bash.ts` 第 11-14 行用 `typebox` 的 `Type.Object` 定义 schema。真 pi 为什么不直接写 JSON Schema 对象？（提示：静态类型 + 运行时校验共享一份定义）
+2. `read.ts` 第 53 行的 `resolveReadToolPath` 比写工具的 `resolveToolPath` 多走了几步路径变体匹配。为什么读需要这种"宽松"，写不需要？（提示：模型给的路径可能与磁盘大小写/Unicode 不完全一致）
+3. `write.ts` 第 28 行用 `withFileMutationQueue` 包裹整个写操作。本章的 write 没有这层包裹——多次并发写同一文件会怎样？（s03 专题解决）
+
+**动手任务（改 mini-pi）**：给 read 加 `offset` 和 `limit` 两个可选参数，参考真 pi 的 `read.ts` 第 100-114 行：按行切片，offset 是 1-indexed。提示：先用 `split("\n")` 把内容拆成行数组。
+
+---
+
+## 妥协清单
+
+| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+|---|---|---|
+| 图片支持 | read 检测 mime type，jpg/png 走 image content 块 | 教学聚焦文本，图片读取是工程细节 |
+| offset/limit 分页 | 按行切片，大文件分多次读 | 教学版一刀切 50000 字符，足够小文件场景 |
+| 截断提示 | 截断时返回 `Showing lines X-Y of Z` | 教学版只截不提示，靠 read 重读验证 |
+| 符号链接归一 | `realpath` 解析后再比对 cwd | 教学版用 `resolve + relative`，不防 symlink 逃逸 |
+| 异步执行 | `executeShellWithCapture` 流式异步 | 教学版 `spawnSync` 同步阻塞，循环短可接受 |
+| 变更队列 | write 经 `withFileMutationQueue` 串行 | s03 专题；本章一轮一写，不会交错 |
+| AbortSignal | signal 贯穿 read/write 全链路 | s04 专题讲；本章循环短，Ctrl+C 够用 |
+
+---
+
+## 默写验收
+
+合上 code.ts 和本 README，打开 [practice.ts](/pi-learn/chapters/s02_tools/practice.ts)，凭记忆补全：`safePath`、`runBash`、`readFile`、`writeFile`、`agentLoop`。
+
+通过标准：`node practice.ts` 跑起来，能用 read 读 package.json、用 write 创建文件、用 bash 跑命令。
+
+写不出 `safePath` 说明路径校验没进脑子——回到「工作原理」第 1 块重读。写不出 dispatch 表说明映射没理清——回到第 3 块。
+
+---
+
+下一章：[s03 edit + 变更队列](/pi-learn/chapters/s03_edit_queue/)

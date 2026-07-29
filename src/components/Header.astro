@@ -1,0 +1,97 @@
+---
+import ThemeToggle from "./ThemeToggle.tsx";
+
+/**
+ * 站点顶部导航栏。
+ * @author fxbin
+ */
+---
+
+<header>
+  <div class="container header-inner">
+    <a href="/pi-learn/" class="logo">PI<span>-</span>LEARN</a>
+    <div class="header-right">
+      <span>DOCS v0.1.0</span>
+      <span>BUILD: STABLE</span>
+      <ThemeToggle client:load />
+    </div>
+  </div>
+</header>
+
+<style>
+  header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1500;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(8px);
+  }
+
+  .header-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 64px;
+  }
+
+  .logo {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo span {
+    color: var(--orange);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  :global(.theme-switch) {
+    width: 48px;
+    height: 24px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  :global(.theme-switch::after) {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: var(--text);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  :global(.theme-switch.on) {
+    border-color: var(--green);
+  }
+
+  :global(.theme-switch.on::after) {
+    transform: translateX(24px);
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  @media (max-width: 640px) {
+    .header-right span {
+      display: none;
+    }
+  }
+</style>
