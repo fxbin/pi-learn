@@ -10,6 +10,8 @@ concepts:
   - tool_result 回填
   - REPL
 ---
+import AgentLoopDiagram from "../../components/diagrams/AgentLoopDiagram.tsx";
+
 # s01: Agent Loop — 一个循环就够了
 
 > 一个工具 + 一个循环 = 一个 Agent。
@@ -39,16 +41,7 @@ concepts:
 | `stop_reason === "tool_use"` | 模型举手说"我要用工具" | 执行 → 结果喂回去 → 继续 |
 | 其他任何值 | 模型说"我做完了" | 退出循环 |
 
-```
-+----------+      +-------+      +---------+
-|   用户   | ---> |  LLM  | ---> | 工具执行 |
-|   提问   |      |       |      |         |
-+----------+      +---+---+      +----+----+
-                      ^               |
-                      |  tool_result  |
-                      +---------------+
-                     （循环继续）
-```
+<AgentLoopDiagram client:load />
 
 agent 的"记忆"就是一个消息数组：用户提问、模型回答、工具结果，全部按序追加，每轮原样发回给模型。没有隐藏状态。
 

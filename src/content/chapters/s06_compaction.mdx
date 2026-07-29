@@ -10,6 +10,8 @@ concepts:
   - 摘要替换
   - 原地替换
 ---
+import CompactionDiagram from "../../components/diagrams/CompactionDiagram.tsx";
+
 # s06: Compaction — 给上下文做 GC
 
 > 留工作集，归档其余。
@@ -34,11 +36,7 @@ s01 的 agent 把"记忆"放在一个消息数组里：用户提问、模型回�
 
 把上下文当成内存：有个工作集（最近几条消息，模型正在用），其余是历史。历史太满时，不是丢掉，而是**压缩成一条摘要**，再放回去。
 
-```
-压缩前：[msg1, msg2, msg3, ..., msg20, msg21, msg22, msg23, msg24, msg25]
-                                        ↑ 切点（保留最近 6 条）
-压缩后：[ summary(msg1..msg19),          msg20, msg21, msg22, msg23, msg24, msg25 ]
-```
+<CompactionDiagram client:load />
 
 三步：
 
@@ -147,7 +145,7 @@ mini-pi 的压缩是教学级简化。真 pi 的实现分布在 `.reference/pi/p
 
 ## 妥协清单
 
-mini-pi 的压缩比真 pi 粗很多，以及为什么省略是安全的：
+mini-pi 的压缩比真 pi 粗很多，以及为什么省略是安全：
 
 | 省略项 | 真 pi 的做法 | 为什么本章可以省 |
 |---|---|---|

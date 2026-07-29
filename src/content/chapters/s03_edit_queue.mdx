@@ -10,6 +10,8 @@ concepts:
   - old_string 唯一性
   - ToolUseBlock.input
 ---
+import MutationQueueDiagram from "../../components/diagrams/MutationQueueDiagram.tsx";
+
 # s03: edit + 变更队列 — 字符串手术与写盘串行化
 
 > edit 是最难的工具：它修改已有内容，而不是整文件覆盖。
@@ -34,11 +36,7 @@ s01 的 agent 只有 bash。想让模型改一个文件？它得 `sed -i`、`ech
 
 **file-mutation-queue**：一条 promise 链，所有写盘操作排队执行。即使两个 edit 同时入队，也一个跑完再跑下一个。
 
-```
-edit(path, old, new) ──┐
-                       ├──→ mutationQueue（promise 链）──→ 写盘
-write(path, content) ──┘
-```
+<MutationQueueDiagram client:load />
 
 dispatch 表把"执行哪个工具"从循环里剥离：新增工具只改一张表，循环本身不动。
 

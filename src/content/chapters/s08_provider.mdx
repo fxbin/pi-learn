@@ -10,6 +10,8 @@ concepts:
   - stop_reason 映射
   - OpenAI 兼容
 ---
+import ProviderDiagram from "../../components/diagrams/ProviderDiagram.tsx";
+
 # s08: Provider — 一个接口，两套后端
 
 > 内部模型只有一套，线格式各有各的样。转换在边界。
@@ -42,13 +44,7 @@ s01 到 s07，所有章节的 `callLlm` 都写死了一件事：向 Anthropic �
 
 把"怎么调 LLM"抽成一个接口，每个供应商写一份实现。主循环只跟接口对话，不知道背后是谁。
 
-```
-     ┌─────────┐     ┌──────────────┐     ┌────────────────┐
-     │  main   │ ──> │ LlmProvider  │ ──> │ Anthropic / OAI│
-     │ (loop)  │ <── │ .complete()  │ <── │  wire format   │
-     └─────────┘     └──────────────┘     └────────────────┘
-                      边界转换在此
-```
+<ProviderDiagram client:load />
 
 接口只一个方法：
 

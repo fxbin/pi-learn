@@ -9,7 +9,7 @@ import Layout from "../../layouts/Layout.astro";
 export async function getStaticPaths() {
   const chapters = await getCollection("chapters");
   return chapters.map((entry) => ({
-    params: { slug: entry.id.replace(/\.md$/, "") },
+    params: { slug: entry.id.replace(/\.(md|mdx)$/, "") },
     props: { entry },
   }));
 }

@@ -10,6 +10,8 @@ concepts:
   - XML 标签包裹
   - 启动时加载
 ---
+import SkillsDiagram from "../../components/diagrams/SkillsDiagram.tsx";
+
 # s07: Skills — 文件即 prompt 注入 + 优雅降级
 
 > 把知识从代码里搬出来，放进文件。
@@ -47,6 +49,8 @@ SYSTEM_PROMPT = BASE_PROMPT
 文件格式极简：首行 `# Skill Name`，其余是正文。没有 frontmatter，没有触发条件——那是 pi 的复杂度，教学版只要"name + 内容"。
 
 但有一个工程决策比格式更重要：**坏文件不能让 agent 崩**。skills 目录是用户写的，可能有编码错误、可能权限不对、可能首行不是 `#`。`loadSkills` 不抛异常，而是返回 `{ skills, diagnostics }`——能读的读进来，读不了的收集成一条诊断消息，agent 照常启动。**生产软件容忍坏文件；玩具直接崩。**
+
+<SkillsDiagram client:load />
 
 ---
 
@@ -219,7 +223,7 @@ mini-pi 的 skills 是教学级简化。真 pi 的实现在 `.reference/pi/packa
 
 ## 妥协清单
 
-mini-pi 的 skills 比真 pi 简单很多，以及为什么省略是安全的：
+mini-pi 的 skills 比真 pi 简单很多，以及为什么省略是安全：
 
 | 省略项 | 真 pi 的做法 | 为什么本章可以省 |
 |---|---|---|

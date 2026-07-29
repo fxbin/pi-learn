@@ -10,6 +10,8 @@ concepts:
   - max-turns 熔断
   - 两层 abort 检测
 ---
+import InterruptDiagram from "../../components/diagrams/InterruptDiagram.tsx";
+
 # s04: 中断与 Steering — 让循环可以被外部打断
 
 > 循环转起来之后，你还得能叫停它、能给它换方向。
@@ -41,27 +43,7 @@ s01 的循环一旦开始，外界唯一能叫停它的方式是 `kill` 进程�
 | steering | `getSteeringMessages` 回调，每轮开始前调一次 | 返回的消息作为 `user` 消息注入 → 模型下一轮看到 |
 | max-turns | 轮数计数器 | 超过上限 → 熔断退出 |
 
-```
-          ┌── signal.aborted? ──┐
-          │                     │
-          ▼                     │
-   ┌─────────────┐         ┌────┴────┐
-   │ steering()  │         │  退出   │
-   │ 注入消息    │         └─────────┘
-   └──────┬──────┘
-          ▼
-   ┌─────────────┐    abort 抛错
-   │  callLlm    │ ──────────────► 捕获退出
-   │  (signal)   │
-   └──────┬──────┘
-          ▼
-   stop_reason ≠ tool_use ? ──► 正常结束
-          │
-          ▼
-   执行工具 → turns++ → 超 maxTurns ? ──► 熔断
-          │
-          └──► 下一轮
-```
+<InterruptDiagram client:load />
 
 **关键认知**：`AbortSignal` 是 Web 标准，不是 pi 发明的。`fetch(url, { signal })` 是浏览器和 Node 都内置的协议——signal 一旦 abort，正在进行的 fetch 立刻抛 `AbortError`。agent loop 只是把同一个 signal 顺手用作"全局停止位"。
 
@@ -146,7 +128,7 @@ mini-pi 的单层循环，在真 pi 里是 `runLoop`：`.reference/pi/packages/a
 
 ## 妥协清单
 
-mini-pi 比真 pi 少做了什么，以及为什么省略是安全的：
+mini-pi 比真 pi 少做了什么，以及为什么省略是安全：
 
 | 省略项 | 真 pi 的做法 | 为什么本章可以省 |
 |---|---|---|

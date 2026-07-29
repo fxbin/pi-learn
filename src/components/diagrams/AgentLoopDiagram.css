@@ -1,0 +1,161 @@
+.ald-root {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 32px 0;
+  font-family: var(--font-mono);
+}
+
+.ald-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ald-title {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+}
+
+.ald-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.ald-controls button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ald-controls button:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.ald-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  flex-wrap: wrap;
+}
+
+.ald-node {
+  width: 120px;
+  height: 80px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.ald-node.active {
+  border-color: var(--orange);
+  box-shadow: 0 0 20px rgba(255, 77, 0, 0.15);
+}
+
+.ald-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: all 0.3s ease;
+}
+
+.ald-node.active .ald-status {
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+
+.ald-label {
+  font-size: 12px;
+  color: var(--text);
+  letter-spacing: 0.05em;
+}
+
+.ald-arrow-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 80px;
+}
+
+.ald-arrow-wrap.reverse {
+  transform: rotate(180deg);
+}
+
+.ald-arrow-wrap.reverse .ald-arrow-label {
+  transform: rotate(-180deg);
+}
+
+.ald-arrow {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.ald-arrow-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  transition: background 0.3s ease;
+}
+
+.ald-arrow.active .ald-arrow-line {
+  background: var(--orange);
+  box-shadow: 0 0 6px rgba(255, 77, 0, 0.4);
+}
+
+.ald-arrow-head {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid var(--border);
+  transition: border-color 0.3s ease;
+}
+
+.ald-arrow.active .ald-arrow-head {
+  border-left-color: var(--orange);
+}
+
+.ald-arrow-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: center;
+  min-height: 14px;
+}
+
+.ald-step {
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.ald-step-num {
+  font-size: 11px;
+  color: var(--orange);
+  letter-spacing: 0.1em;
+}
+
+.ald-step-label {
+  font-size: 13px;
+  color: var(--text);
+}

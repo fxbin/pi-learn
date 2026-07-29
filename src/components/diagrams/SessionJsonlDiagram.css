@@ -1,0 +1,146 @@
+.sjd-root {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 32px 0;
+  font-family: var(--font-mono);
+}
+
+.sjd-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sjd-title {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+}
+
+.sjd-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.sjd-controls button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sjd-controls button:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.sjd-stage {
+  padding: 40px 24px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.sjd-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 200px;
+  flex: 1;
+  max-width: 320px;
+}
+
+.sjd-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.sjd-array,
+.sjd-file {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 160px;
+}
+
+.sjd-array.loaded {
+  border-color: var(--green);
+}
+
+.sjd-msg {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  font-size: 12px;
+  border-left: 3px solid var(--border);
+}
+
+.sjd-msg.user {
+  border-left-color: var(--orange);
+}
+
+.sjd-msg.assistant {
+  border-left-color: var(--green);
+}
+
+.sjd-role {
+  color: var(--text-dim);
+  text-transform: uppercase;
+  min-width: 64px;
+}
+
+.sjd-text {
+  color: var(--text);
+  word-break: break-all;
+}
+
+.sjd-line {
+  font-size: 10px;
+  color: var(--green);
+  word-break: break-all;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.sjd-line:last-child {
+  border-bottom: none;
+}
+
+.sjd-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  margin: auto 0;
+}
+
+.sjd-arrow {
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+  color: var(--text-dim);
+  padding-top: 24px;
+}
+
+.sjd-footer {
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+}

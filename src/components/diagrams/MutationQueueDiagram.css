@@ -1,0 +1,153 @@
+.mqd-root {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 32px 0;
+  font-family: var(--font-mono);
+}
+
+.mqd-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mqd-title {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+}
+
+.mqd-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.mqd-controls button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mqd-controls button:hover:not(:disabled) {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.mqd-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mqd-stage {
+  padding: 48px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: auto;
+}
+
+.mqd-chain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: min-content;
+}
+
+.mqd-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mqd-node {
+  width: 140px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.mqd-node.running {
+  border-color: var(--orange);
+  box-shadow: 0 0 16px rgba(255, 77, 0, 0.15);
+}
+
+.mqd-node.done {
+  border-color: var(--green);
+}
+
+.mqd-node.failed {
+  border-color: #ff3333;
+}
+
+.mqd-node-name {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.mqd-node-status {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.mqd-node.running .mqd-node-status {
+  color: var(--orange);
+}
+
+.mqd-node.done .mqd-node-status {
+  color: var(--green);
+}
+
+.mqd-connector {
+  display: flex;
+  align-items: center;
+  width: 48px;
+}
+
+.mqd-connector-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+}
+
+.mqd-connector-head {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid var(--border);
+}
+
+.mqd-footer {
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.mqd-footer code {
+  color: var(--green);
+}
+
+.mqd-note {
+  color: var(--text-dim);
+  font-size: 11px;
+}

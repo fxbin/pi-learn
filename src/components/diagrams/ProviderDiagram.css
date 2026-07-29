@@ -1,0 +1,132 @@
+.pd-root {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 32px 0;
+  font-family: var(--font-mono);
+}
+
+.pd-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pd-title {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+}
+
+.pd-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.pd-controls button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pd-controls button:hover,
+.pd-controls button.active {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.pd-stage {
+  padding: 48px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pd-box {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 20px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pd-box.loop {
+  border-color: var(--green);
+}
+
+.pd-box.provider {
+  border-color: var(--orange);
+}
+
+.pd-box-title {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.pd-box code {
+  font-size: 12px;
+  color: var(--green);
+}
+
+.pd-provider-name {
+  font-size: 18px;
+  color: var(--orange);
+  font-weight: 700;
+}
+
+.pd-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.pd-arrow {
+  font-size: 20px;
+  color: var(--text-dim);
+}
+
+.pd-note {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.pd-wire-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pd-wire-list li {
+  font-size: 11px;
+  color: var(--text);
+}
+
+.pd-wire-list strong {
+  color: var(--text-dim);
+  margin-right: 8px;
+}
+
+.pd-footer {
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+}

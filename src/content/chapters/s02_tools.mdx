@@ -10,6 +10,8 @@ concepts:
   - 输出截断
   - shell vs 直调
 ---
+import DispatchTableDiagram from "../../components/diagrams/DispatchTableDiagram.tsx";
+
 # s02: bash/read/write — 三个"无聊"工具与 dispatch 表
 
 > 一个工具太少了，三个刚好。循环不变，只换一张表。
@@ -37,11 +39,7 @@ s01 的 agent 只有 bash。想让模型读个文件？`cat`。写文件？`echo
 
 **dispatch 表**：工具名 → 处理函数的映射。循环里一行分发：`handlers[block.name](block.input)`。加工具只改表，不改循环。
 
-```
-tool_use.name ──┬──→ handlers["bash"]  ──→ runBash(input)
-                ├──→ handlers["read"]  ──→ readFile(input)
-                └──→ handlers["write"] ──→ writeFile(input)
-```
+<DispatchTableDiagram client:load />
 
 `ToolUseBlock.input` 从 s01 的 `{ command: string }` 泛化为 `Record<string, unknown>`——因为不同工具有不同参数，循环不能再假设 input 形状。
 

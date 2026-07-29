@@ -1,0 +1,148 @@
+.cd-root {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 32px 0;
+  font-family: var(--font-mono);
+}
+
+.cd-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cd-title {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+}
+
+.cd-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.cd-controls button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cd-controls button:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.cd-stage {
+  padding: 40px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+
+.cd-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.cd-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.cd-stack {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 240px;
+}
+
+.cd-msg {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.cd-msg.summary {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.cd-msg-tokens {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.cd-meter {
+  width: 48px;
+  height: 200px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+}
+
+.cd-fill {
+  width: 100%;
+  background: var(--green);
+  transition: height 0.4s ease;
+}
+
+.cd-fill.over {
+  background: #ff3333;
+}
+
+.cd-limit {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  border-top: 1px dashed var(--text-dim);
+  font-size: 9px;
+  color: var(--text-dim);
+  text-align: center;
+  padding-top: 4px;
+}
+
+.cd-total {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.cd-alert,
+.cd-info {
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.cd-alert {
+  color: #ff3333;
+}
+
+.cd-info {
+  color: var(--green);
+}

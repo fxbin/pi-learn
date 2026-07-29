@@ -10,6 +10,8 @@ concepts:
   - resume（断点续传）
   - 持久化点（persistence point）
 ---
+import SessionJsonlDiagram from "../../components/diagrams/SessionJsonlDiagram.tsx";
+
 # s05: Session / JSONL — append-only 持久化与 resume
 
 > 消息数组是 agent 的全部状态。把它落盘，就能断点续传。
@@ -50,6 +52,8 @@ session.jsonl
 启动时 `loadMessages` 恢复历史，每轮结束后 `saveMessages` 落盘新增消息。进程崩了？重启，读回来，接着写。
 
 这就是 **Event Sourcing** 的最小形态：状态 = 事件序列的重放结果。不需要数据库，不需要 schema 迁移，一个文本编辑器就能检查"到底发生了什么"。
+
+<SessionJsonlDiagram client:load />
 
 ---
 
@@ -131,7 +135,7 @@ mini-pi 的两个函数，在真 pi 里对应一整套 session 子系统：`.ref
 
 ## 妥协清单
 
-mini-pi 比真 pi 少做了什么，以及为什么省略是安全的：
+mini-pi 比真 pi 少做了什么，以及为什么省略是安全：
 
 | 省略项 | 真 pi 的做法 | 为什么本章可以省 |
 |---|---|---|
