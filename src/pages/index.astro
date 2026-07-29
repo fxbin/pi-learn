@@ -18,7 +18,7 @@ const chapters = (await getCollection("chapters")).sort((a, b) => a.data.order -
       <div class="hero-stats">
         <div class="stat"><strong>14</strong><span>核心章节</span></div>
         <div class="stat"><strong>01</strong><span>迷你 harness</span></div>
-        <div class="stat"><strong>00</strong><span>构建工具</span></div>
+        <div class="stat"><strong>03</strong><span>番外主题</span></div>
       </div>
     </div>
   </section>
@@ -35,6 +35,32 @@ const chapters = (await getCollection("chapters")).sort((a, b) => a.data.order -
             href={`/pi-learn/chapters/${ch.id.replace(/\.(md|mdx)$/, "")}/`}
           />
         ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="dashboard extras-section">
+    <div class="container">
+      <div class="section-label">— 番外 / EXTRAS</div>
+      <div class="chapter-grid">
+        <ChapterCard
+          num="EX·01"
+          title="扩展系统"
+          description="运行时加载 TS 模块，注册工具/命令/provider/UI/快捷键，三层错误隔离。s10 机制内核的完整能力面。"
+          href="/pi-learn/extras/extensions/"
+        />
+        <ChapterCard
+          num="EX·02"
+          title="订阅认证"
+          description="device code 流程拿访问令牌——无浏览器跳转、无本地端口、跨设备可用的 OAuth 方案。"
+          href="/pi-learn/extras/#oauth"
+        />
+        <ChapterCard
+          num="EX·03"
+          title="终端界面"
+          description="消费 agent 事件流——流式输出、工具调用可视化、中断反馈、多窗口布局，保持 60fps。"
+          href="/pi-learn/extras/#tui"
+        />
       </div>
     </div>
   </section>
@@ -107,6 +133,11 @@ const chapters = (await getCollection("chapters")).sort((a, b) => a.data.order -
   .dashboard {
     padding: 120px 0;
     border-top: 1px solid var(--border);
+  }
+
+  .extras-section {
+    padding-top: 0;
+    border-top: none;
   }
 
   .section-label {
