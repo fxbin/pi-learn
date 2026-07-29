@@ -1,0 +1,482 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+/**
+ * 番外·扩展系统详细页。
+ * 覆盖 s10 未讲的 extension 完整能力面：工具/命令/provider/UI/keybinding/flag/compaction/模式扩展。
+ * 与 s10 互补——s10 讲机制内核（lifecycle hooks + 三类钩子 + 错误隔离），本篇讲能力面。
+ * @author fxbin
+ */
+
+const toolCode = [
+  'pi.registerTool(defineTool({',
+  '  name: "hello",',
+  '  label: "Hello",',
+  '  description: "Say hello to someone",',
+  '  promptSnippet: "Greet a person by name.",',
+  '  promptGuidelines: ["Always be polite"],',
+  '  parameters: Type.Object({ name: Type.String() }),',
+  '  executionMode: "sequential",',
+  '  renderShell: "self",',
+  '  execute: async (id, params, signal, onUpdate, ctx) => {',
+  '    return { content: [{ type: "text", text: "Hello, " + params.name + "!" }] };',
+  '  },',
+  '  renderCall: (args, theme) => CustomCallComponent,',
+  '  renderResult: (result, opts, theme) => CustomResultComponent,',
+  '}));'
+].join("\n");
+
+const commandCode = [
+  'pi.registerCommand("tools", {',
+  '  description: "Toggle tools on/off",',
+  '  getArgumentCompletions: (prefix) => filteredItems,',
+  '  handler: async (args, ctx) => {',
+  '    const choice = await ctx.ui.select("Select tool", items);',
+  '    if (choice) { pi.setActiveTools([choice]); }',
+  '  },',
+  '});'
+].join("\n");
+
+const providerCode = [
+  'pi.registerProvider("custom-anthropic", {',
+  '  baseUrl: "https://api.anthropic.com",',
+  '  apiKey: process.env.ANTHROPIC_API_KEY,',
+  '  api: anthropicMessagesApi(),',
+  '  models: [{ id: "claude-sonnet-4-5", ... }],',
+  '  oauth: { login, refreshToken, getApiKey },',
+  '  streamSimple: (model, ctx, opts) => customSSEStream,',
+  '  headers: { "x-custom": "..." },',
+  '  authHeader: true,',
+  '});'
+].join("\n");
+
+const shortcutCode = [
+  'pi.registerShortcut(Key.ctrlAlt("p"), {',
+  '  description: "Toggle plan mode",',
+  '  handler: (ctx) => togglePlanMode(),',
+  '});',
+  'pi.registerFlag("plan", {',
+  '  type: "boolean",',
+  '  default: false,',
+  '});',
+  'const enabled = pi.getFlag("plan");'
+].join("\n");
+
+const compactionCode = [
+  'pi.on("session_before_compact", (event, ctx) => {',
+  '  const model = ctx.modelRegistry.find("google", "gemini-2.5-flash");',
+  '  const text = serializeConversation(event.preparation.messagesToSummarize);',
+  '  const summary = await complete(model, { messages: [{ role: "user", content: text }] }, { signal: event.signal });',
+  '  return {',
+  '    compaction: {',
+  '      summary,',
+  '      firstKeptEntryId: event.preparation.firstKeptEntryId,',
+  '      tokensBefore: event.preparation.tokensBefore,',
+  '    },',
+  '  };',
+  '});'
+].join("\n");
+
+const panoramaCode = [
+  'ExtensionAPI',
+  '├─ on(event, handler)          26 个事件（s10 讲了 6 个，本篇补 20 个）',
+  '├─ registerTool(tool)          注入 dispatch table（s02）',
+  '├─ registerCommand(name, opt) slash 命令 + 会话控制权',
+  '├─ registerProvider(name, cfg) 注入 ModelRegistry（s08）+ OAuth + streamSimple',
+  '├─ registerShortcut(key, opt) 快捷键 + 冲突仲裁',
+  '├─ registerFlag(name, opt)     CLI flag + getFlag',
+  '├─ registerMessageRenderer    自定义消息渲染',
+  '├─ pi.events                   EventBus 扩展间通信',
+  '└─ Action 方法                 sendMessage / setModel / setActiveTools / exec...',
+  '',
+  'ExtensionContext.ui（TUI 模式独有）',
+  '├─ select / confirm / input    对话框',
+  '├─ notify / setStatus          通知 + 状态栏',
+  '├─ setWidget / setFooter       Widget / Footer / Header',
+  '├─ custom(factory, { overlay }) Overlay 自定义组件（doom-overlay）',
+  '├─ setEditorComponent          替换编辑器（modal-editor）',
+  '├─ addAutocompleteProvider     自动补全',
+  '├─ theme / setTheme            主题',
+  '└─ setTitle                    终端标题'
+].join("\n");
+---
+
+<Layout title="番外·扩展系统 · pi-learn" description="pi extension 完整能力面与实战">
+  <article class="ext-page">
+    <div class="ext-main">
+      <div class="ext-meta">
+        <div class="ext-num">EXTRAS · EXTENSIONS</div>
+        <h1>扩展系统能力面</h1>
+        <p class="ext-description">
+          s10 讲了扩展怎么跑（lifecycle hooks + 三类钩子 + 三层错误隔离）。本篇讲扩展还能做什么——工具、命令、provider、UI、快捷键、CLI flag、自定义压缩、模式扩展。
+        </p>
+      </div>
+
+      <div class="ext-content">
+        <h2 id="boundary">边界：s10 讲了什么，本篇讲什么</h2>
+        <table>
+          <thead>
+            <tr><th>能力面</th><th>s10 已讲</th><th>本篇覆盖</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>事件订阅</td><td>三类钩子 + 6 个事件</td><td>剩余 20 个事件清单</td></tr>
+            <tr><td>工具注册</td><td>—</td><td>ToolDefinition 完整契约 + 与 dispatch table 桥接</td></tr>
+            <tr><td>命令注册</td><td>—</td><td>registerCommand + 会话控制权</td></tr>
+            <tr><td>Provider 注册</td><td>—</td><td>ProviderConfig + OAuth + 延迟 flush</td></tr>
+            <tr><td>UI 扩展</td><td>—</td><td>ExtensionUIContext 十余项能力</td></tr>
+            <tr><td>快捷键 / CLI flag</td><td>—</td><td>registerShortcut + registerFlag + 冲突仲裁</td></tr>
+            <tr><td>自定义压缩</td><td>—</td><td>session_before_compact 事件模式</td></tr>
+            <tr><td>模式扩展</td><td>—</td><td>subagent vs plan-mode 两种思路</td></tr>
+            <tr><td>加载生命周期</td><td>throwing stubs + await factory</td><td>完整 7 阶段</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="lifecycle">Extension 自身加载生命周期 7 阶段</h2>
+        <p>
+          s10 讲的是扩展挂载 handler 后监听 <strong>agent 运行时事件</strong>。本节问的是 extension 实例本身的加载/注册/销毁——loader 和 runner 管理 extension 的视角。
+        </p>
+        <ol>
+          <li><strong>Discover</strong>：扫描 <code>cwd/.pi/extensions/</code>（项目级）+ <code>agentDir/extensions/</code>（全局级）。三种入口：直接 .ts 文件 / 子目录 index.ts / 子目录 package.json 含 <code>pi.extensions</code> 字段。</li>
+          <li><strong>Load module</strong>：jiti 运行时 import TS（<code>moduleCache: false</code>），取 <code>module.default</code> 作为 factory。</li>
+          <li><strong>Init factory</strong>：<code>await factory(api)</code> 执行所有 <code>api.on</code> / <code>api.registerTool</code> 注册。此阶段 action 方法是 throwing stubs——防止扩展在加载期误调 <code>sendMessage</code>。registerProvider 入队 <code>pendingProviderRegistrations</code>。</li>
+          <li><strong>Bind core</strong>：throwing stubs 替换成真实 actions（sendMessage / setModel / setActiveTools…）。flush pendingProviderRegistrations 到 ModelRegistry。从此刻起 registerProvider 立即生效，无需 /reload。</li>
+          <li><strong>Bind command context</strong>：注入 waitForIdle / newSession / fork / navigateTree / switchSession / reload。只有 slash 命令 handler 能拿到这些会话控制权，事件 handler 拿不到——权限分层。</li>
+          <li><strong>Bind UI</strong>：noOpUIContext 替换为真实 TUI 实现。print/RPC 模式保留 noOp。</li>
+          <li><strong>Shutdown</strong>：<code>invalidate()</code> 标记 stale + emit <code>session_shutdown</code>。reason 含 <code>quit/reload/new/resume/fork</code>，扩展可据 reason 决定清理策略。</li>
+        </ol>
+        <p>
+          <strong>两层生命周期的交汇点</strong>：<code>session_shutdown</code> 既是 agent 运行时事件（s10 视角），也是 extension 实例销毁信号（本节视角）。扩展监听它做 cleanup，是两层唯一直接交互的地方。
+        </p>
+
+        <h2 id="tool">Custom Tool 完整契约</h2>
+        <p>
+          s02 的 dispatch table 是 <code>AgentTool[]</code>。扩展注册的工具经 <code>wrapRegisteredTool</code> 转成 <code>AgentTool</code> 喂给 dispatch table——与内置工具地位平等，因此可以同名注册覆盖内置工具。
+        </p>
+        <pre class="ext-code"><code>{toolCode}</code></pre>
+        <p>
+          <strong>defineTool 的作用</strong>：直接传对象字面量给 registerTool 会丢失泛型推断，defineTool 包装后 <code>TParams</code> 完整保留。execute 返回 <code>AgentToolResult</code>，与内置工具同形。
+        </p>
+        <p>
+          <strong>执行模式</strong>：<code>sequential</code>（串行，默认）/ <code>parallel</code>（可与其他并行工具并发）。<code>renderShell: "self"</code> 时工具自渲染外壳，<code>"default"</code> 走默认彩色框。
+        </p>
+        <p>
+          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/types.ts#L426-L488">types.ts:426-488</a> ToolDefinition · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/wrapper.ts#L17-L19">wrapper.ts:17-19</a> wrapRegisteredTool 桥接 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/hello.ts">hello.ts</a> 最小示例 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/subagent/index.ts">subagent/index.ts</a> 完整示例（renderCall/renderResult/并发控制/子进程）
+        </p>
+
+        <h2 id="command">Custom Command + 会话控制权</h2>
+        <pre class="ext-code"><code>{commandCode}</code></pre>
+        <p>
+          handler 收到原始 <code>args: string</code>，扩展自行解析——pi 不做参数 schema 校验，KISS。
+        </p>
+        <p>
+          <strong>重名冲突仲裁</strong>：两个扩展都注册 <code>/foo</code>，invocationName 自动变成 <code>/foo:1</code> 和 <code>/foo:2</code>。避免静默覆盖。
+        </p>
+        <p>
+          <strong>ExtensionCommandContext 的会话控制权</strong>：只有 slash 命令 handler 拿到 <code>waitForIdle / newSession / fork / navigateTree / switchSession / reload</code>。事件 handler 拿到的是普通 ExtensionContext，不能切会话。这是权限分层——用户主动触发的命令才允许做高风险操作。
+        </p>
+        <p>
+          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/types.ts#L333-L364">types.ts:333-364</a> ExtensionCommandContext · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/runner.ts#L512-L546">runner.ts:512-546</a> resolveRegisteredCommands · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/commands.ts">commands.ts</a> + <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/tools.ts">tools.ts</a>
+        </p>
+
+        <h2 id="provider">Custom Provider + 延迟 flush</h2>
+        <pre class="ext-code"><code>{providerCode}</code></pre>
+        <p>
+          <strong>与 s08 的关系</strong>：s08 讲 pi-ai 包的 <code>LlmProvider</code> 抽象。扩展的 registerProvider 最终调用 <code>ModelRegistry.registerProvider</code>。两条路径：提供 <code>streamSimple</code> 完全自定义 SSE 流；不提供则用 pi-ai 内置流处理器，只覆盖 baseUrl/headers。
+        </p>
+        <p>
+          <strong>延迟 flush 机制</strong>：加载阶段 ModelRegistry 还没绑定，registerProvider 入队 <code>pendingProviderRegistrations</code>。bindCore 后 flush——单个失败走 emitError 不中断。此后 registerProvider 立即生效，无需 /reload。
+        </p>
+        <p>
+          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/types.ts#L1240-L1348">types.ts:1240-1348</a> ProviderConfig · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/runner.ts#L301-L335">runner.ts:301-335</a> bindCore flush · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/custom-provider-anthropic/index.ts">custom-provider-anthropic</a> 完整示例（OAuth + streamSimple + 工具名映射）
+        </p>
+
+        <h2 id="ui">UI 扩展能力面</h2>
+        <p>
+          UI 能力不在 <code>ExtensionAPI</code> 上，而在 <code>ExtensionContext.ui</code>（<code>ExtensionUIContext</code>）。设计原因：UI 依赖 TUI 实例，print/RPC 模式没有 TUI（noOpUIContext 全空实现），所以 UI 能力必须在 context 上。
+        </p>
+        <table>
+          <thead>
+            <tr><th>类别</th><th>API</th><th>示例</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>对话框</td><td>select / confirm / input / editor</td><td>permission-gate.ts</td></tr>
+            <tr><td>通知</td><td>notify(message, type?)</td><td>pirate.ts</td></tr>
+            <tr><td>状态栏</td><td>setStatus(key, text)</td><td>plan-mode.ts</td></tr>
+            <tr><td>Widget</td><td>setWidget(key, content, placement)</td><td>widget-placement.ts · snake.ts</td></tr>
+            <tr><td>Footer/Header</td><td>setFooter(factory) / setHeader(factory)</td><td>custom-footer.ts</td></tr>
+            <tr><td>Overlay 组件</td><td>custom(factory, overlayOptions)</td><td>doom-overlay · snake.ts</td></tr>
+            <tr><td>编辑器替换</td><td>setEditorComponent(factory)</td><td>modal-editor.ts · rainbow-editor.ts</td></tr>
+            <tr><td>自动补全</td><td>addAutocompleteProvider(factory)</td><td>github-issue-autocomplete.ts</td></tr>
+            <tr><td>主题</td><td>theme / getTheme / setTheme</td><td>mac-system-theme.ts</td></tr>
+            <tr><td>终端标题</td><td>setTitle(title)</td><td>titlebar-spinner.ts</td></tr>
+            <tr><td>原始输入</td><td>onTerminalInput(handler)</td><td>自定义按键监听</td></tr>
+            <tr><td>消息渲染</td><td>registerMessageRenderer(customType, renderer)</td><td>message-renderer.ts</td></tr>
+          </tbody>
+        </table>
+        <p>
+          <strong>CustomEditor 模式</strong>：扩展继承 CustomEditor 基类重写 handleInput，对未处理的键调 <code>super.handleInput(data)</code> 让 app keybinding 继续生效——Vim 风格 modal editor 的标准模式。
+        </p>
+        <p>
+          <strong>doom-overlay 的意义</strong>：35 FPS 实时渲染 DOOM，证明 overlay 能承载真实游戏，不是玩具。任何"能不能在 pi 里跑 X"的疑问都有答案了。
+        </p>
+
+        <h2 id="keybinding-flag">Keybinding + CLI Flag</h2>
+        <pre class="ext-code"><code>{shortcutCode}</code></pre>
+        <p>
+          <strong>快捷键冲突仲裁</strong>（三类）：
+        </p>
+        <ol>
+          <li>扩展键撞保留键（17 个，如 app.interrupt / app.exit）→ warning + <strong>skip</strong>（扩展无法覆盖）</li>
+          <li>扩展键撞非保留内置键 → warning 但<strong>扩展胜出</strong></li>
+          <li>多个扩展注册同一键 → warning，<strong>后注册的胜出</strong></li>
+        </ol>
+        <p>
+          <strong>Flag 生命周期</strong>：registerFlag 时若有 default 且 flagValues 没有该 key，写入默认值。CLI 解析后 setFlagValue 覆盖。扩展通过 <code>pi.getFlag(name)</code> 读取——先校验扩展自己注册了该 flag，再从 runtime 读取。
+        </p>
+        <p>
+          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/runner.ts#L62-L80">runner.ts:62-80</a> 保留键清单 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/runner.ts#L417-L460">runner.ts:417-460</a> 冲突检测 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/plan-mode/index.ts">plan-mode</a> + <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/preset.ts">preset</a>
+        </p>
+
+        <h2 id="compaction">Custom Compaction：事件驱动可替换行为</h2>
+        <p>
+          pi 没有单独的 <code>registerCompaction</code> API。自定义压缩通过 <code>session_before_compact</code> 事件 + result 字段实现——这是"事件驱动可替换行为"的典型模式。所有"可替换核心行为"都用 before_xxx 事件，而不是新增 registerXxx API。
+        </p>
+        <pre class="ext-code"><code>{compactionCode}</code></pre>
+        <p>
+          返回 <code>{"{ compaction }"}</code> 替换默认压缩结果；返回 <code>{"{ cancel: true }"}</code> 取消压缩；返回 undefined 回退默认。失败时 return 即可，不用抛错。
+        </p>
+        <p>
+          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/types.ts#L536-L549">types.ts:536-549</a> 事件签名 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/custom-compaction.ts">custom-compaction.ts</a> 完整示例 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/trigger-compact.ts">trigger-compact.ts</a> 主动触发
+        </p>
+
+        <h2 id="mode">模式扩展两种思路</h2>
+        <p>
+          extension 没有直接的 <code>registerMode</code> API。两种实现思路：
+        </p>
+        <table>
+          <thead>
+            <tr><th>维度</th><th>subagent（spawn 子进程）</th><th>plan-mode（白名单+注入）</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>context 隔离</td><td>物理隔离（子进程）</td><td>逻辑隔离（同进程，setActiveTools 限制）</td></tr>
+            <tr><td>实现复杂度</td><td>高（子进程管理、JSON 协议、并发控制）</td><td>中（事件组合）</td></tr>
+            <tr><td>可观测性</td><td>子进程输出需自定义渲染</td><td>主循环输出，原生可观测</td></tr>
+            <tr><td>适合场景</td><td>长任务委派、多 agent 协作</td><td>模式切换、安全约束</td></tr>
+            <tr><td>示例</td><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/subagent/index.ts">subagent/index.ts</a></td><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/plan-mode/index.ts">plan-mode/index.ts</a></td></tr>
+          </tbody>
+        </table>
+        <p>
+          <strong>plan-mode 的能力组合</strong>（几乎用到了一半的扩展能力）：registerFlag + registerCommand + registerShortcut + setActiveTools + before_agent_start 注入 system prompt + tool_call 拦截 + context 过滤 + turn_end 提取标记 + session_start 恢复状态 + setStatus + setWidget + appendEntry 持久化。
+        </p>
+
+        <h2 id="examples">官方示例索引</h2>
+        <table>
+          <thead>
+            <tr><th>示例</th><th>演示能力</th><th>教学价值</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/hello.ts">hello.ts</a></td><td>registerTool + defineTool</td><td>最小可运行扩展</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/tools.ts">tools.ts</a></td><td>registerCommand + setActiveTools + 持久化</td><td>有状态扩展范式</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/commands.ts">commands.ts</a></td><td>registerCommand + autocomplete + getCommands</td><td>命令系统元命令</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/custom-provider-anthropic/index.ts">custom-provider-anthropic</a></td><td>registerProvider + OAuth + streamSimple</td><td>provider 最完整示例</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/doom-overlay/index.ts">doom-overlay</a></td><td>custom + overlay</td><td>UI 极限能力（35 FPS）</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/snake.ts">snake.ts</a></td><td>custom + setInterval + 持久化</td><td>UI 游戏教学起点</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/plan-mode/index.ts">plan-mode</a></td><td>flag + command + shortcut + 事件组合</td><td>模式扩展综合应用</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/subagent/index.ts">subagent</a></td><td>registerTool + spawn + 并发控制</td><td>最完整工具示例</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/custom-compaction.ts">custom-compaction.ts</a></td><td>session_before_compact</td><td>事件驱动可替换行为</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/modal-editor.ts">modal-editor.ts</a></td><td>setEditorComponent + CustomEditor</td><td>Vim 风格编辑器</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/tool-override.ts">tool-override.ts</a></td><td>同名 registerTool 覆盖内置</td><td>工具覆盖模式</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/event-bus.ts">event-bus.ts</a></td><td>pi.events EventBus</td><td>扩展间通信</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="events-remaining">其余事件清单</h2>
+        <p>
+          s10 讲了 6 个事件。剩余 20 个按类别分组：
+        </p>
+        <table>
+          <thead>
+            <tr><th>类别</th><th>事件</th><th>用途</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>会话树</td><td>session_tree / session_before_tree / session_before_switch / session_before_fork</td><td>与 s14 呼应，分支切换事件</td></tr>
+            <tr><td>Provider</td><td>before_provider_request / after_provider_response</td><td>请求/响应拦截</td></tr>
+            <tr><td>输入</td><td>input / user_bash</td><td>用户输入变换 / <code>!</code> 命令拦截</td></tr>
+            <tr><td>工具细粒度</td><td>BashToolCall / ReadToolCall / EditToolCall / WriteToolCall / GrepToolCall / FindToolCall / LsToolCall / CustomToolCall</td><td>按工具类型的事件 + isToolCallEventType 类型守卫</td></tr>
+            <tr><td>工具结果</td><td>tool_result</td><td>工具结果变换</td></tr>
+            <tr><td>工具执行</td><td>tool_execution_start / tool_execution_update / tool_execution_end</td><td>执行进度事件</td></tr>
+            <tr><td>模型</td><td>model_select / thinking_level_select</td><td>模型/thinking 切换</td></tr>
+            <tr><td>消息流</td><td>message_start / message_update</td><td>消息流式事件（s10 只讲 message_end）</td></tr>
+            <tr><td>Turn/Agent</td><td>turn_start / turn_end / agent_start / agent_end</td><td>turn/agent 级事件</td></tr>
+            <tr><td>资源</td><td>resources_discover</td><td>动态注入 skills/prompts/themes 路径</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="action">Action 方法集</h2>
+        <p>
+          扩展不止被动监听，还能主动操作 agent。bindCore 后这些方法从 throwing stubs 变成真实实现：
+        </p>
+        <ul>
+          <li><strong>消息</strong>：sendMessage / sendUserMessage / appendEntry</li>
+          <li><strong>工具</strong>：setActiveTools（白名单）/ getActiveTools / getAllTools</li>
+          <li><strong>模型</strong>：setModel / setThinkingLevel / getThinkingLevel</li>
+          <li><strong>会话</strong>：setSessionName / setLabel（给 entry 打标签）</li>
+          <li><strong>执行</strong>：exec（执行 shell 命令）</li>
+          <li><strong>压缩</strong>：compact（主动触发压缩）</li>
+          <li><strong>查询</strong>：getContextUsage（上下文 token 用量）</li>
+        </ul>
+
+        <h2 id="panorama">能力全景</h2>
+        <pre class="ext-code"><code>{panoramaCode}</code></pre>
+
+        <p class="ext-back">
+          ← <a href="/pi-learn/extras/">返回番外索引</a> · <a href="/pi-learn/chapters/s10_extensions/">回到 s10 正文</a>
+        </p>
+      </div>
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .ext-page {
+    padding: 120px 0 80px;
+    min-height: 100vh;
+  }
+
+  .ext-main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+
+  .ext-meta {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 48px;
+    margin-bottom: 48px;
+  }
+
+  .ext-num {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--orange);
+    margin-bottom: 16px;
+  }
+
+  .ext-meta h1 {
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 20px;
+  }
+
+  .ext-description {
+    font-size: 18px;
+    color: var(--text-dim);
+    max-width: 720px;
+    line-height: 1.6;
+  }
+
+  .ext-content {
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  .ext-content h2 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    border-top: 1px solid var(--border);
+    padding-top: 32px;
+    margin-top: 48px;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  .ext-content h3 {
+    font-size: 24px;
+    font-weight: 800;
+    margin-top: 32px;
+    margin-bottom: 16px;
+  }
+
+  .ext-content p {
+    margin-bottom: 20px;
+  }
+
+  .ext-content ul,
+  .ext-content ol {
+    margin-bottom: 20px;
+    padding-left: 24px;
+  }
+
+  .ext-content li {
+    margin-bottom: 8px;
+  }
+
+  .ext-content a {
+    color: var(--orange);
+    border-bottom: 1px solid var(--orange);
+  }
+
+  .ext-content code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--surface);
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    color: var(--green);
+  }
+
+  .ext-content pre.ext-code {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    overflow-x: auto;
+    margin: 24px 0;
+  }
+
+  .ext-content pre.ext-code code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .ext-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+
+  .ext-content th,
+  .ext-content td {
+    border: 1px solid var(--border);
+    padding: 12px;
+    text-align: left;
+  }
+
+  .ext-content th {
+    background: var(--surface);
+    font-weight: 700;
+  }
+
+  .ext-content strong {
+    color: var(--text);
+  }
+
+  .ext-back {
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 768px) {
+    .ext-main {
+      padding: 0 24px;
+    }
+  }
+</style>

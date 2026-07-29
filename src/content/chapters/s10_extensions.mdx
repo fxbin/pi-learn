@@ -255,3 +255,16 @@ mini-pi 的扩展系统比真 pi 简单很多，以及为什么省略是安全�
 通过标准：`node practice.ts` 跑起来，能看到 session_start 的 boom 抛错被黄色 `[error]` 隔离、message_end 的 `damn` 被过滤成 `****`、tool_call 被 block 短路、invalidate 后 emit 抛 stale 错误。
 
 写不出 `emit` 的 try/catch + continue，说明"错误隔离"没进脑子，回到「工作原理」第 3 块重读通用 emit 那段。写不出 `emitTransform` 的 `{ ...event, ...current }`，说明"链式 reduce"的线程逻辑没理解，回到 emitTransform 那段。写不出 `assertActive` 的一行 `if (staleMessage) throw`，说明 stale 保护没记住——这是最容易漏但最关键的一行。
+
+---
+
+## 延伸阅读
+
+本章只讲了扩展系统的**机制内核**（lifecycle hooks + 三类钩子 + 三层错误隔离）。扩展还能做什么——工具、命令、provider、UI、快捷键、CLI flag、自定义压缩、模式扩展——见 [番外·扩展系统能力面](/pi-learn/extras/extensions/)。
+
+两个关键区分：
+
+- **s10 = 怎么跑**：事件订阅、handler 编排、错误隔离、stale 保护。读完能写出一个 Observer/Interceptor/Transformer 扩展。
+- **番外 = 还能做什么**：registerTool 注入 dispatch table、registerCommand 拿会话控制权、registerProvider + OAuth、UI overlay、plan-mode 模式组合。读完知道扩展的能力边界在哪。
+
+番外还补全了剩余 20 个事件清单、ExtensionAction 方法集（sendMessage/setModel/compact…）、官方示例索引（hello.ts → doom-overlay → subagent）。
