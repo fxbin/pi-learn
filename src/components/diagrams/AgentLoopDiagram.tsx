@@ -3,9 +3,16 @@ import "./AgentLoopDiagram.css";
 
 /**
  * s01 Agent Loop 动态循环图。
- * 展示 while 循环结构：用户输入 → LLM↔工具循环 → 最终输出。
- * 核心是 LLM 与工具之间的循环：tool_use → tool_result → 再 tool_use …
- * 直到 stop_reason !== "tool_use" 才跳出循环。
+ * 水平布局：用户提问 → LLM ⇄ 工具（双向箭头形成 loop）→ 最终回答 → 用户。
+ *
+ * 核心视觉：
+ *   - LLM 与工具之间是双向通道：上行 tool_use（LLM→工具，橙色），下行 tool_result（工具→LLM，绿色）。
+ *   - 两条箭头并列形成一个可视化的"循环回路"，比单向箭头+弧线更直观地表达 loop 语义。
+ *   - LLM 节点带 ↻ 徽章，循环阶段旋转。
+ *   - stop_reason !== "tool_use" 时跳出循环，沿 LLM 下方输出最终回答。
+ *
+ * 序列：输入 → 两轮 tool_use/tool_result 循环 → 输出。
+ * 两轮用于教学演示，实际循环次数由模型决定。
  * @author fxbin
  */
 
@@ -15,20 +22,21 @@ interface StepDef {
   phase: Phase;
   label: string;
   loopIndex: number;
+  message: string;
 }
 
-/**
- * 完整动画序列：输入 → 两轮 tool_use/tool_result 循环 → 输出。
- * 两轮循环用于教学演示，实际运行时循环次数由模型决定。
- */
 const FULL_SEQUENCE: StepDef[] = [
-  { phase: "input", label: "用户提问", loopIndex: 0 },
-  { phase: "tool_use", label: "tool_use", loopIndex: 1 },
-  { phase: "tool_result", label: "tool_result", loopIndex: 1 },
-  { phase: "tool_use", label: "tool_use", loopIndex: 2 },
-  { phase: "tool_result", label: "tool_result", loopIndex: 2 },
-  { phase: "output", label: "最终回答", loopIndex: 0 },
+  { phase: "input", label: "用户提问", loopIndex: 0, message: "写个 hello.ts" },
+  { phase: "tool_use", label: "LLM 调用 write 工具", loopIndex: 1, message: 'write("hello.ts", "console.log(1)")' },
+  { phase: "tool_result", label: "工具返回写入成功", loopIndex: 1, message: "ok: wrote 18 bytes" },
+  { phase: "tool_use", label: "LLM 调用 bash 工具", loopIndex: 2, message: 'bash("tsc hello.ts")' },
+  { phase: "tool_result", label: "工具返回编译结果", loopIndex: 2, message: "exit 0, no output" },
+  { phase: "output", label: "LLM 输出最终回答", loopIndex: 0, message: "已创建 hello.ts 并通过编译。" }
 ];
+
+const STOP_REASON_TOOL_USE = '"tool_use"';
+const STOP_REASON_END_TURN = '"end_turn"';
+const STOP_REASON_EMPTY = '"';
 
 /**
  * 根据当前阶段返回 stop_reason 模拟值。
@@ -36,16 +44,13 @@ const FULL_SEQUENCE: StepDef[] = [
  * @returns stop_reason 字符串
  */
 function getStopReason(phase: Phase): string {
-  switch (phase) {
-    case "tool_use":
-      return '"tool_use"';
-    case "tool_result":
-      return '"tool_use"';
-    case "output":
-      return '"end_turn"';
-    default:
-      return '"';
+  if (phase === "tool_use" || phase === "tool_result") {
+    return STOP_REASON_TOOL_USE;
   }
+  if (phase === "output") {
+    return STOP_REASON_END_TURN;
+  }
+  return STOP_REASON_EMPTY;
 }
 
 export default function AgentLoopDiagram() {
@@ -56,7 +61,7 @@ export default function AgentLoopDiagram() {
     if (!playing) return;
     const id = setInterval(() => {
       setStep((s) => (s + 1) % FULL_SEQUENCE.length);
-    }, 1500);
+    }, 1800);
     return () => clearInterval(id);
   }, [playing]);
 
@@ -69,6 +74,7 @@ export default function AgentLoopDiagram() {
   const toolResultActive = current.phase === "tool_result";
   const llmActive = current.phase !== "input";
   const toolActive = toolUseActive || toolResultActive;
+  const inLoop = current.phase === "tool_use" || current.phase === "tool_result";
 
   return (
     <div className="ald-root diagram">
@@ -91,38 +97,52 @@ export default function AgentLoopDiagram() {
       </div>
 
       <div className="ald-stage">
-        <div className={`ald-node ${userInputActive || llmOutputActive ? "active" : ""}`}>
-          <div className="ald-status" />
-          <div className="ald-label">用户</div>
-        </div>
+        <div className="ald-row ald-row-main">
+          <div className={`ald-node ald-node-user ${userInputActive ? "active" : ""}`}>
+            <div className="ald-status" />
+            <div className="ald-label">用户</div>
+          </div>
 
-        <div className="ald-channel ald-channel-user">
-          <div className={`ald-arrow ald-arrow-right ${userInputActive ? "active" : ""}`}>
+          <div className={`ald-arrow ald-arrow-h ald-arrow-input ${userInputActive ? "active" : ""}`}>
             <span className="ald-arrow-label">提问</span>
           </div>
-          <div className={`ald-arrow ald-arrow-left ${llmOutputActive ? "active" : ""}`}>
-            <span className="ald-arrow-label">最终回答</span>
+
+          <div className={`ald-node ald-node-llm ${llmActive ? "active" : ""}`}>
+            <div className="ald-status" />
+            <div className="ald-label">LLM</div>
+            <div className={`ald-loop-badge ${inLoop ? "spinning" : ""}`}>↻</div>
+          </div>
+
+          <div className={`ald-channel-bi ${toolUseActive ? "active-use" : ""} ${toolResultActive ? "active-result" : ""}`}>
+            <svg viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true">
+              <line x1="8" y1="20" x2="188" y2="20" className="ald-channel-line ald-channel-use" />
+              <polygon points="188,20 178,15 178,25" className="ald-channel-head ald-channel-use-head" />
+              <line x1="192" y1="40" x2="12" y2="40" className="ald-channel-line ald-channel-result" />
+              <polygon points="12,40 22,35 22,45" className="ald-channel-head ald-channel-result-head" />
+            </svg>
+            <span className="ald-channel-label ald-channel-label-use">tool_use</span>
+            <span className="ald-channel-label ald-channel-label-result">tool_result</span>
+          </div>
+
+          <div className={`ald-node ald-node-tool ${toolActive ? "active" : ""}`}>
+            <div className="ald-status" />
+            <div className="ald-label">工具</div>
           </div>
         </div>
 
-        <div className={`ald-node ald-node-llm ${llmActive ? "active" : ""}`}>
-          <div className="ald-status" />
-          <div className="ald-label">LLM</div>
-          <div className="ald-loop-icon">↻</div>
-        </div>
-
-        <div className="ald-channel ald-channel-loop">
-          <div className={`ald-arrow ald-arrow-right ${toolUseActive ? "active" : ""}`}>
-            <span className="ald-arrow-label">tool_use</span>
+        <div className="ald-row ald-row-output">
+          <div className={`ald-arrow ald-arrow-down ald-arrow-output ${llmOutputActive ? "active" : ""}`}>
+            <span className="ald-arrow-label">最终回答 · stop_reason=end_turn</span>
           </div>
-          <div className={`ald-arrow ald-arrow-left ${toolResultActive ? "active" : ""}`}>
-            <span className="ald-arrow-label">tool_result</span>
+          <div className={`ald-node ald-node-output ${llmOutputActive ? "active" : ""}`}>
+            <div className="ald-status" />
+            <div className="ald-label">用户</div>
           </div>
         </div>
 
-        <div className={`ald-node ${toolActive ? "active" : ""}`}>
-          <div className="ald-status" />
-          <div className="ald-label">工具执行</div>
+        <div className="ald-message">
+          <span className="ald-message-label">当前消息</span>
+          <code className="ald-message-text">{current.message}</code>
         </div>
       </div>
 

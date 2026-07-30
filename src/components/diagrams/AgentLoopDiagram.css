@@ -40,29 +40,44 @@
   color: var(--orange);
 }
 
-/* 三节点横排：用户 — LLM — 工具 */
+/*
+ * 舞台布局：水平主流程居中，输出路径在下方居中。
+ * LLM ⇄ 工具 之间的双向通道直观表达 loop 语义：
+ *   上行 tool_use（橙色，向右）
+ *   下行 tool_result（绿色，向左）
+ */
 .ald-stage {
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  min-height: 360px;
+}
+
+.ald-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0;
-  padding: 56px 24px;
-  flex-wrap: nowrap;
+  gap: 16px;
+}
+
+.ald-row-output {
+  flex-direction: column;
+  gap: 8px;
 }
 
 .ald-node {
   width: 120px;
-  height: 80px;
+  height: 64px;
   border: 1px solid var(--border);
   background: var(--bg);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   position: relative;
   transition: all 0.3s ease;
-  flex-shrink: 0;
 }
 
 .ald-node.active {
@@ -84,71 +99,55 @@
 }
 
 .ald-label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text);
   letter-spacing: 0.05em;
 }
 
-/* LLM 节点上的循环图标 */
-.ald-loop-icon {
+/* LLM 节点上的循环徽章 */
+.ald-loop-badge {
   position: absolute;
   top: -10px;
   right: -10px;
-  width: 20px;
-  height: 20px;
-  border: 1px solid var(--green);
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--text-dim);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  color: var(--green);
+  font-size: 12px;
+  color: var(--text-dim);
   background: var(--bg);
+  transition: all 0.3s ease;
 }
 
-/* 双线通道：上下两根箭头线，形成回路 */
-.ald-channel {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 48px;
-  width: 130px;
-  min-width: 130px;
-  position: relative;
-}
-
-/* 循环通道（LLM↔工具）加视觉标记 */
-.ald-channel-loop {
-  height: 56px;
-}
-
-.ald-channel-loop::before {
-  content: "LOOP";
-  position: absolute;
-  top: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 9px;
+.ald-loop-badge.spinning {
+  border-color: var(--green);
   color: var(--green);
-  letter-spacing: 0.15em;
+  animation: ald-spin 1.2s linear infinite;
 }
 
-/* 箭头线 */
-.ald-arrow {
+@keyframes ald-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 水平箭头（用户→LLM 的"提问"） */
+.ald-arrow-h {
+  width: 100px;
   height: 2px;
   background: var(--border);
   position: relative;
   transition: all 0.3s ease;
-  width: 100%;
 }
 
-.ald-arrow.active {
+.ald-arrow-h.active {
   background: var(--orange);
   box-shadow: 0 0 6px var(--glow-orange);
 }
 
-/* 向右箭头头 */
-.ald-arrow-right::after {
+.ald-arrow-h::after {
   content: "";
   position: absolute;
   right: -1px;
@@ -156,38 +155,19 @@
   transform: translateY(-50%);
   width: 0;
   height: 0;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
   border-left: 8px solid var(--border);
-  transition: border-color 0.3s ease;
-}
-
-.ald-arrow-right.active::after {
-  border-left-color: var(--orange);
-}
-
-/* 向左箭头头 */
-.ald-arrow-left::before {
-  content: "";
-  position: absolute;
-  left: -1px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 0;
-  height: 0;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
-  border-right: 8px solid var(--border);
   transition: border-color 0.3s ease;
 }
 
-.ald-arrow-left.active::before {
-  border-right-color: var(--orange);
+.ald-arrow-h.active::after {
+  border-left-color: var(--orange);
 }
 
 .ald-arrow-label {
   position: absolute;
-  top: -14px;
+  top: -18px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 10px;
@@ -196,13 +176,149 @@
   transition: color 0.3s ease;
 }
 
-.ald-arrow.active .ald-arrow-label {
+.ald-arrow-h.active .ald-arrow-label {
   color: var(--orange);
 }
 
-.ald-channel-loop .ald-arrow:last-child .ald-arrow-label {
-  top: auto;
-  bottom: -14px;
+/*
+ * LLM ⇄ 工具 双向通道。
+ * 上行 tool_use（向右，橙色），下行 tool_result（向左，绿色）。
+ * 两条箭头并列形成可视化的"循环回路"。
+ */
+.ald-channel-bi {
+  width: 200px;
+  height: 60px;
+  position: relative;
+}
+
+.ald-channel-bi svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ald-channel-line {
+  stroke: var(--text-dim);
+  stroke-width: 2;
+  transition: stroke 0.3s ease;
+}
+
+.ald-channel-head {
+  fill: var(--text-dim);
+  transition: fill 0.3s ease;
+}
+
+.ald-channel-bi.active-use .ald-channel-use {
+  stroke: var(--orange);
+}
+
+.ald-channel-bi.active-use .ald-channel-use-head {
+  fill: var(--orange);
+}
+
+.ald-channel-bi.active-result .ald-channel-result {
+  stroke: var(--green);
+}
+
+.ald-channel-bi.active-result .ald-channel-result-head {
+  fill: var(--green);
+}
+
+.ald-channel-label {
+  position: absolute;
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  transition: color 0.3s ease;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ald-channel-label-use {
+  top: 0;
+}
+
+.ald-channel-label-result {
+  bottom: 0;
+}
+
+.ald-channel-bi.active-use .ald-channel-label-use {
+  color: var(--orange);
+}
+
+.ald-channel-bi.active-result .ald-channel-label-result {
+  color: var(--green);
+}
+
+/* 垂直向下箭头（LLM→用户的"最终回答"） */
+.ald-arrow-down {
+  width: 2px;
+  height: 40px;
+  background: var(--border);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.ald-arrow-down.active {
+  background: var(--green);
+}
+
+.ald-arrow-down::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-top: 8px solid var(--border);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.ald-arrow-down.active::after {
+  border-top-color: var(--green);
+}
+
+.ald-arrow-down .ald-arrow-label {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.ald-arrow-down.active .ald-arrow-label {
+  color: var(--green);
+}
+
+/* 当前消息预览：让 loop 不再是抽象箭头，而是可读的真实消息 */
+.ald-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px dashed var(--border);
+  background: var(--bg);
+  margin-top: 8px;
+  min-width: 320px;
+  max-width: 100%;
+}
+
+.ald-message-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.ald-message-text {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  word-break: break-all;
 }
 
 /* 底部状态栏 */
@@ -247,13 +363,30 @@
 
 @media (max-width: 768px) {
   .ald-stage {
-    flex-wrap: wrap;
-    gap: 8px;
     padding: 32px 16px;
+    gap: 24px;
   }
 
-  .ald-channel {
+  .ald-node {
     width: 80px;
-    min-width: 80px;
+    height: 56px;
+  }
+
+  .ald-arrow-h {
+    width: 40px;
+  }
+
+  .ald-channel-bi {
+    width: 120px;
+  }
+
+  .ald-channel-label-use,
+  .ald-channel-label-result {
+    font-size: 9px;
+  }
+
+  .ald-message {
+    min-width: 0;
+    width: 100%;
   }
 }

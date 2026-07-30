@@ -152,9 +152,9 @@ const chapters = (await getCollection("chapters")).sort((a, b) => a.data.order -
   .chapter-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
+    gap: 0;
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
   }
 
   footer {
