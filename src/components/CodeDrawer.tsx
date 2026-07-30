@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import "./CodeDrawer.css";
+import { highlight } from "./highlight";
 
 /**
  * 代码查看抽屉。
- * 拦截所有指向 /pi-learn/chapters/<slug>/<file>.ts 链接的默认下载行为，
- * 改为从右侧滑出面板显示文件内容。
+ * 拦截所有指向 /pi-learn/chapters/<slug>/<file>.{ts,js,md} 链接的默认下载行为，
+ * 改为从右侧滑出面板显示文件内容，并做轻量语法高亮。
  *
  * 交互：
  *   - 点击 .ts / .js / .md 链接 → 右侧滑出抽屉
@@ -13,10 +14,17 @@ import "./CodeDrawer.css";
  *
  * @author fxbin
  */
+
+/** 每个代码行的渲染单元：行号 + 高亮后的 HTML。 */
+interface Line {
+  num: number;
+  html: string;
+}
+
 export default function CodeDrawer() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [code, setCode] = useState("");
+  const [lines, setLines] = useState<Line[]>([]);
   const [filename, setFilename] = useState("");
 
   useEffect(() => {
@@ -32,18 +40,21 @@ export default function CodeDrawer() {
       setFilename(filename);
       setOpen(true);
       setLoading(true);
-      setCode("");
+      setLines([]);
       fetch(fullUrl)
         .then((r) => {
           if (!r.ok) throw new Error(String(r.status));
           return r.text();
         })
         .then((text) => {
-          setCode(text);
+          const highlighted = highlight(text, filename);
+          const arr = highlighted.split("\n");
+          setLines(arr.map((html, i) => ({ num: i + 1, html })));
           setLoading(false);
         })
         .catch((err) => {
-          setCode(`加载失败：${err.message}`);
+          const msg = `加载失败：${err.message}`;
+          setLines([{ num: 1, html: msg }]);
           setLoading(false);
         });
     }
@@ -60,8 +71,9 @@ export default function CodeDrawer() {
   }, [open]);
 
   function copyContent() {
-    if (!code) return;
-    navigator.clipboard.writeText(code).then(() => {
+    if (!lines.length) return;
+    const text = lines.map((l) => l.html).join("\n").replace(/<[^>]*>/g, "");
+    navigator.clipboard.writeText(text).then(() => {
       const btn = document.querySelector<HTMLButtonElement>(".cd-copy-btn");
       if (btn) {
         const original = btn.textContent;
@@ -72,8 +84,6 @@ export default function CodeDrawer() {
       }
     });
   }
-
-  const lineCount = code ? code.split("\n").length : 0;
 
   return (
     <>
@@ -86,14 +96,14 @@ export default function CodeDrawer() {
         <header className="cd-header">
           <div className="cd-title-bar">
             <span className="cd-filename">{filename}</span>
-            <span className="cd-line-count">{lineCount > 0 ? `${lineCount} 行` : ""}</span>
+            <span className="cd-line-count">{lines.length > 0 ? `${lines.length} 行` : ""}</span>
           </div>
           <div className="cd-actions">
             <button
               type="button"
               className="cd-copy-btn"
               onClick={copyContent}
-              disabled={loading || !code}
+              disabled={loading || lines.length === 0}
             >
               复制
             </button>
@@ -106,9 +116,17 @@ export default function CodeDrawer() {
           {loading ? (
             <div className="cd-loading">加载中…</div>
           ) : (
-            <pre className="cd-pre">
-              <code className="cd-code">{code}</code>
-            </pre>
+            <div className="cd-code-grid">
+              {lines.map((line) => (
+                <div key={line.num} className="cd-line-row">
+                  <span className="cd-line-num">{line.num}</span>
+                  <code
+                    className="cd-line-code"
+                    dangerouslySetInnerHTML={{ __html: line.html || "&nbsp;" }}
+                  />
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </aside>

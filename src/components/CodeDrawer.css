@@ -1,12 +1,13 @@
 /*
  * CodeDrawer 样式：右侧滑出抽屉，遮罩层 + 固定宽度面板。
- * 所有颜色用 CSS 变量，支持暗/亮主题切换。
+ * 代码区用双列网格：左侧行号（dim）+ 右侧代码（带语法高亮）。
+ * 所有颜色用 CSS 变量（--tok-* / --overlay-bg 等），支持暗/亮主题切换。
  */
 
 .cd-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-bg);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;
@@ -23,7 +24,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(720px, 80vw);
+  width: min(760px, 82vw);
   background: var(--surface);
   border-left: 1px solid var(--border);
   box-shadow: -20px 0 60px var(--shadow);
@@ -115,24 +116,115 @@
   font-size: 13px;
 }
 
-.cd-pre {
-  margin: 0;
-  padding: 20px 24px;
+/*
+ * 代码区：双列网格，左列行号（固定宽，右对齐，dim 色），
+ * 右列代码（高亮 span 着色）。每行一个 grid row，行号不随水平滚动消失。
+ */
+.cd-code-grid {
   font-family: var(--font-mono);
   font-size: 12.5px;
   line-height: 1.65;
-  color: var(--text);
-  white-space: pre;
-  overflow-x: auto;
-  tab-size: 2;
+  padding: 16px 0;
 }
 
-.cd-code {
+.cd-line-row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  align-items: baseline;
+  padding-right: 24px;
+}
+
+.cd-line-row:hover {
+  background: var(--surface-2);
+}
+
+.cd-line-num {
+  text-align: right;
+  padding-right: 16px;
+  color: var(--text-dim);
+  user-select: none;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.cd-line-code {
   font-family: inherit;
+  white-space: pre;
+  color: var(--text);
+}
+
+/*
+ * 语法高亮 token 颜色。
+ * 全部引用 --tok-* CSS 变量，暗/亮主题由 global.css 统一切换。
+ * 配色参考经典 IDE 主题，避免过饱和。
+ */
+
+.tok-keyword {
+  color: var(--tok-keyword);
+}
+
+.tok-literal {
+  color: var(--tok-literal);
+}
+
+.tok-string {
+  color: var(--tok-string);
+}
+
+.tok-comment {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+
+.tok-number {
+  color: var(--tok-number);
+}
+
+.tok-decorator {
+  color: var(--tok-decorator);
+}
+
+.tok-fn {
+  color: var(--tok-fn);
+}
+
+.tok-ident {
+  color: var(--text);
+}
+
+.tok-punct {
+  color: var(--tok-punct);
+}
+
+.tok-md-heading {
+  color: var(--tok-md-heading);
+  font-weight: 600;
+}
+
+.tok-md-fence {
+  color: var(--tok-md-fence);
+}
+
+.tok-md-code {
+  color: var(--tok-md-code);
+}
+
+.tok-md-link {
+  color: var(--tok-md-link);
 }
 
 @media (max-width: 768px) {
   .cd-drawer {
     width: 100vw;
+  }
+
+  .cd-line-row {
+    grid-template-columns: 40px 1fr;
+    padding-right: 16px;
+  }
+
+  .cd-line-num {
+    padding-right: 8px;
+    font-size: 10px;
   }
 }

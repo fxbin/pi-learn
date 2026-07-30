@@ -17,6 +17,19 @@
   --glow-red: rgba(255, 51, 51, 0.25);
   --font-display: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", "Consolas", monospace;
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+  --tok-keyword: #c586c0;
+  --tok-literal: #569cd6;
+  --tok-string: #ce9178;
+  --tok-comment: #6a9955;
+  --tok-number: #b5cea8;
+  --tok-decorator: #dcdcaa;
+  --tok-fn: #dcdcaa;
+  --tok-punct: #d4d4d4;
+  --tok-md-heading: #569cd6;
+  --tok-md-fence: #6a9955;
+  --tok-md-code: #ce9178;
+  --tok-md-link: #4ec9b0;
 }
 
 /**
@@ -40,6 +53,19 @@
   --shadow: rgba(0, 0, 0, 0.12);
   --glow-orange: rgba(184, 48, 0, 0.22);
   --glow-red: rgba(168, 32, 32, 0.22);
+  --overlay-bg: rgba(0, 0, 0, 0.4);
+  --tok-keyword: #af00db;
+  --tok-literal: #0000ff;
+  --tok-string: #a31515;
+  --tok-comment: #008000;
+  --tok-number: #098658;
+  --tok-decorator: #795e26;
+  --tok-fn: #795e26;
+  --tok-punct: #333333;
+  --tok-md-heading: #0000ff;
+  --tok-md-fence: #008000;
+  --tok-md-code: #a31515;
+  --tok-md-link: #098658;
 }
 
 * {
