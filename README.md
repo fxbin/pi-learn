@@ -1,6 +1,6 @@
 # pi-learn
 
-学习 [pi](https://github.com/earendil-works/pi)（原 Claude Code）源码的笔记记录。每篇对应一个核心机制，先读懂，再手写一遍，最后对照 pi 真实源码看差距。
+学习 [pi](https://github.com/earendil-works/pi) 源码的笔记记录。每篇对应一个核心机制，先读懂，再手写一遍，最后对照 pi 真实源码看差距。
 
 > 在线版：https://fxbin.github.io/pi-learn/
 

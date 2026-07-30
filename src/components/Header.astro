@@ -27,6 +27,13 @@ const NAV_ITEMS = [
     <div class="header-right">
       <span>DOCS v0.1.0</span>
       <span>BUILD: STABLE</span>
+      <a
+        class="repo-link"
+        href="https://github.com/fxbin/pi-learn"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="GitHub 仓库（新窗口打开）"
+      >GitHub ↗</a>
       <ThemeToggle client:load />
     </div>
   </div>
@@ -89,6 +96,20 @@ const NAV_ITEMS = [
     font-family: var(--font-mono);
     font-size: 12px;
     color: var(--text-dim);
+  }
+
+  /* GitHub 仓库外链：与主导航视觉一致，hover 转 orange */
+  .repo-link {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: color 0.2s ease;
+  }
+
+  .repo-link:hover {
+    color: var(--orange);
   }
 
   :global(.theme-switch) {
