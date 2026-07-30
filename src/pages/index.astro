@@ -23,6 +23,16 @@ const chapters = (await getCollection("chapters")).sort((a, b) => a.data.order -
     </div>
   </section>
 
+  <section class="overview-banner">
+    <div class="container">
+      <a href="/pi-learn/overview/" class="overview-link">
+        <span class="overview-link-label">总览</span>
+        <span class="overview-link-title">pi 执行流程总览</span>
+        <span class="overview-link-desc">14 个核心模块，按执行顺序动态串联。点击查看完整流程 →</span>
+      </a>
+    </div>
+  </section>
+
   <section class="dashboard">
     <div class="container">
       <div class="section-label">— 章节索引 / CHAPTER INDEX</div>
@@ -133,6 +143,52 @@ const chapters = (await getCollection("chapters")).sort((a, b) => a.data.order -
   .dashboard {
     padding: 120px 0;
     border-top: 1px solid var(--border);
+  }
+
+  /*
+   * 总览入口 banner：hero 下方、章节索引上方。
+   * 一个可点击的宽幅链接，引导读者先看总览再进章节。
+   */
+  .overview-banner {
+    padding: 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .overview-link {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 24px 0;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    flex-wrap: wrap;
+  }
+
+  .overview-link:hover {
+    padding-left: 12px;
+  }
+
+  .overview-link-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--orange);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .overview-link-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .overview-link-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-left: auto;
   }
 
   .extras-section {

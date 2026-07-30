@@ -1,0 +1,1250 @@
+/*
+ * AgentExecutionDiagram 样式（v4）。
+ *
+ * v3 → v4 升级：
+ *   - ns-2 新增动画：打字机 / block appear / msg saved / flash-in / 3 包错峰接力
+ *   - ns-3 新增交互：接缝面板 / compacted 标记 / phase 指示器 / JUMPING 状态
+ *   - ns-4 新增响应式：SVG 垂直 path / details 折叠 / prefers-reduced-motion 12 项
+ *
+ * 结构：
+ *   .aed-root
+ *     ├─ .aed-header（标题 + 控制按钮）
+ *     ├─ .aed-branch-switcher（退出分支切换 + JUMPING 提示）
+ *     ├─ .aed-stage
+ *     │   ├─ .aed-flow（节点流程图）
+ *     │   │   └─ .aed-flow-track
+ *     │   │       ├─ .aed-links-svg（SVG 连接层，水平 + 垂直双套 path）
+ *     │   │       └─ .aed-nodes-grid（CSS Grid 节点层）
+ *     │   │           ├─ .aed-node × N（可点击 JUMP + ARIA）
+ *     │   │           └─ .aed-loop-region（Agent Loop 回环区，overflow:visible）
+ *     │   └─ .aed-panels（消息数组 + 事件流双面板，details 折叠）
+ *     └─ .aed-footer（phase 指示器 + 步骤信息 + 进度条 + 退出条件）
+ *
+ * 所有颜色使用 CSS 变量，支持暗/亮主题切换。
+ * @author fxbin
+ */
+
+/* ===================================================================
+ * 根容器
+ * =================================================================== */
+
+.aed-root {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 40px 0;
+  font-family: var(--font-mono);
+  box-shadow: 0 20px 60px var(--shadow);
+}
+
+/* ===================================================================
+ * Header：标题 + 控制按钮
+ * =================================================================== */
+
+.aed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.aed-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.aed-title {
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.aed-subtitle {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+.aed-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.aed-controls button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 8px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.05em;
+}
+
+.aed-controls button:hover:not(:disabled) {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.aed-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.aed-btn-primary {
+  border-color: var(--orange) !important;
+  color: var(--orange) !important;
+}
+
+.aed-btn-active {
+  border-color: var(--green) !important;
+  color: var(--green) !important;
+}
+
+/* ===================================================================
+ * 退出分支切换器 + JUMPING 提示
+ * =================================================================== */
+
+.aed-branch-switcher {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-wrap: wrap;
+}
+
+.aed-branch-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.aed-branch-btn {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aed-branch-btn:hover:not(:disabled) {
+  border-color: var(--orange);
+  color: var(--text);
+}
+
+.aed-branch-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.aed-branch-btn.active {
+  border-color: var(--orange);
+  color: var(--orange);
+  background: var(--surface);
+}
+
+/** JUMPING 提示文字（ns-3） */
+.aed-jumping-hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--yellow);
+  letter-spacing: 0.1em;
+  animation: aed-blink 0.6s ease-in-out infinite;
+}
+
+/* ===================================================================
+ * 舞台：节点流程图 + 双面板
+ * =================================================================== */
+
+.aed-stage {
+  padding: 40px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* ===================================================================
+ * 节点流程图：CSS Grid + SVG 连接层
+ *
+ * .aed-flow-track 是相对定位容器，SVG 绝对定位在其后，
+ * .aed-nodes-grid 绝对定位在其前，两者叠加。
+ * SVG 包含水平 path（.aed-link-h，宽屏默认）+ 垂直 path（.aed-link-v，窄屏切换）
+ * =================================================================== */
+
+.aed-flow {
+  width: 100%;
+}
+
+.aed-flow-track {
+  position: relative;
+  width: 100%;
+  min-height: 240px;
+}
+
+.aed-links-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* SVG 连接 path：默认暗，激活时亮 */
+.aed-link {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.aed-link.active {
+  stroke: var(--text-dim);
+  opacity: 1;
+  stroke-dasharray: none;
+}
+
+.aed-link-tool-use {
+  stroke: var(--border);
+}
+
+.aed-link-tool-use.active {
+  stroke: var(--orange);
+  stroke-width: 2;
+  opacity: 1;
+  stroke-dasharray: none;
+}
+
+.aed-link-tool-result {
+  stroke: var(--border);
+}
+
+.aed-link-tool-result.active {
+  stroke: var(--green);
+  stroke-width: 2;
+  opacity: 1;
+  stroke-dasharray: none;
+}
+
+.aed-link-hidden {
+  fill: none;
+  stroke: none;
+  opacity: 0;
+}
+
+/** 水平 path 默认显示（宽屏） */
+.aed-link-h {
+  display: block;
+}
+
+/** 垂直 path 默认隐藏，窄屏 <768px 切换显示（ns-4） */
+.aed-link-v {
+  display: none;
+}
+
+/* 数据包流动圆点 */
+.aed-packet {
+  fill: var(--orange);
+  filter: drop-shadow(0 0 4px var(--glow-orange));
+}
+
+.aed-packet-tool_use {
+  fill: var(--orange);
+}
+
+.aed-packet-tool_result {
+  fill: var(--green);
+  filter: drop-shadow(0 0 4px var(--glow-orange));
+}
+
+.aed-packet-response {
+  fill: var(--text-dim);
+  filter: none;
+}
+
+/* ===================================================================
+ * 节点层：CSS Grid 定位
+ *
+ * 6 列布局：user | tui | agentSession | loop-region | exit | output
+ * 节点可点击 JUMP（ns-3），cursor:pointer + tabIndex + ARIA
+ * =================================================================== */
+
+.aed-nodes-grid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 2fr 1fr 1fr;
+  align-items: center;
+  gap: 0;
+  min-height: 220px;
+  padding: 28px 0;
+}
+
+/* 单个节点（ns-3 可点击 JUMP） */
+.aed-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 14px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  min-width: 88px;
+  min-height: 72px;
+  position: relative;
+  transition: all 0.3s ease;
+  margin: 0 auto;
+  cursor: pointer;
+}
+
+.aed-node:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.aed-node-pending {
+  opacity: 0.35;
+}
+
+.aed-node-active {
+  border-color: var(--orange);
+  box-shadow: 0 0 24px var(--glow-orange);
+  opacity: 1;
+  animation: aed-pulse 1.5s ease-in-out infinite;
+  transform: scale(1.05);
+}
+
+.aed-node-done {
+  border-color: var(--green);
+  opacity: 1;
+}
+
+@keyframes aed-pulse {
+  0%, 100% { box-shadow: 0 0 12px var(--glow-orange); }
+  50% { box-shadow: 0 0 28px var(--glow-orange); }
+}
+
+.aed-node-label {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.aed-node-active .aed-node-label {
+  color: var(--orange);
+}
+
+.aed-node-done .aed-node-label {
+  color: var(--green);
+}
+
+/* 章节锚点：下划线 + hover 变色 */
+.aed-node-chapter {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.aed-node-chapter:hover {
+  color: var(--orange);
+}
+
+.aed-node-active .aed-node-chapter {
+  color: var(--orange);
+}
+
+.aed-node-done .aed-node-chapter {
+  color: var(--green);
+}
+
+/* 接缝标签（convertToLlm / before/after 等，ns-3 可点击展开面板） */
+.aed-seam-tag {
+  font-size: 8px;
+  color: var(--text-dim);
+  background: var(--surface);
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  margin-top: 2px;
+  position: relative;
+}
+
+.aed-seam-tag:hover,
+.aed-seam-tag.expanded {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+
+.aed-seam-tag:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+}
+
+/* hook 节点（prepareNextTurn） */
+.aed-node-hook {
+  border-style: dashed;
+}
+
+.aed-hook-icon {
+  font-size: 14px;
+}
+
+/* LLM 节点的循环徽章 */
+.aed-spin-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--orange);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--orange);
+  background: var(--bg);
+  animation: aed-spin 1.5s linear infinite;
+}
+
+@keyframes aed-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ===================================================================
+ * 接缝标签展开面板（ns-3）
+ *
+ * 三行结构：说明文字 + 源码锚点 + 触发时机
+ * prepareNextTurn 面板向上展开（bottom:100%）
+ * convertToLlm 面板向下展开（top:100%）
+ * =================================================================== */
+
+.aed-seam-panel {
+  position: absolute;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--purple);
+  z-index: 10;
+  font-size: 10px;
+  color: var(--text);
+  box-shadow: 0 4px 16px var(--shadow);
+  animation: aed-fade-in 0.2s ease;
+}
+
+/** 向上展开（prepareNextTurn / beforeAfter 在回环区底部） */
+.aed-seam-panel-up {
+  bottom: 100%;
+  margin-bottom: 4px;
+}
+
+/** 向下展开（convertToLlm 在节点底部） */
+.aed-seam-panel-down {
+  top: 100%;
+  margin-top: 4px;
+}
+
+.aed-seam-panel-desc {
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.aed-seam-panel-anchor {
+  color: var(--orange);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: 9px;
+}
+
+.aed-seam-panel-anchor:hover {
+  color: var(--text);
+}
+
+.aed-seam-panel-timing {
+  color: var(--text-dim);
+  font-size: 9px;
+  font-style: italic;
+}
+
+/* ===================================================================
+ * Agent Loop 回环区
+ *
+ * Grid 第 4 列，宽度是其他列的 2 倍。
+ * 内部包含 LLM ⇄ Tools 双向通道 + prepareNextTurn 接缝标签。
+ * overflow:visible 确保接缝面板不被裁剪（ns-3）。
+ * =================================================================== */
+
+.aed-loop-region {
+  border: 1.5px dashed var(--border);
+  border-radius: 10px;
+  padding: 28px 20px 20px;
+  position: relative;
+  transition: all 0.3s ease;
+  background: var(--bg);
+  margin: 0 auto;
+  width: 100%;
+  overflow: visible;
+}
+
+.aed-loop-region.active {
+  border-color: var(--orange);
+  border-style: solid;
+  box-shadow: 0 0 20px var(--glow-orange);
+  animation: aed-border-pulse 2s ease-in-out infinite;
+}
+
+@keyframes aed-border-pulse {
+  0%, 100% { box-shadow: 0 0 8px var(--glow-orange); }
+  50% { box-shadow: 0 0 24px var(--glow-orange); }
+}
+
+.aed-loop-label {
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  background: var(--surface);
+  padding: 0 8px;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+.aed-loop-region.active .aed-loop-label {
+  color: var(--orange);
+}
+
+.aed-loop-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* 双向通道标签 */
+.aed-channel-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 9px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.aed-channel-up {
+  color: var(--orange);
+}
+
+.aed-channel-down {
+  color: var(--green);
+}
+
+/* prepareNextTurn 接缝标签（回环区底部） */
+.aed-seam {
+  margin-top: 16px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-dim);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.aed-seam.active {
+  border-color: var(--purple);
+  border-style: solid;
+  color: var(--purple);
+  background: var(--surface);
+}
+
+.aed-seam-icon {
+  font-size: 12px;
+}
+
+.aed-seam-label {
+  letter-spacing: 0.05em;
+}
+
+/* ===================================================================
+ * 双面板：消息数组 + 事件流
+ *
+ * ns-4 改用 <details>/<summary> 折叠：
+ *   - 消息面板默认展开（open）
+ *   - 事件流面板默认折叠，窄屏点击展开
+ * JUMP 期间 .aed-panels.jumping 加 blur 滤镜（ns-3）
+ * =================================================================== */
+
+.aed-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  min-height: 320px;
+  transition: all 0.3s ease;
+}
+
+/** JUMP >3 步时加 blur 滤镜（ns-3） */
+.aed-panels.jumping {
+  opacity: 0.5;
+  filter: blur(1px);
+}
+
+.aed-panel {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+/** details/summary 默认样式重置（ns-4） */
+.aed-panel-summary {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface);
+  flex-wrap: wrap;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.aed-panel-summary::-webkit-details-marker {
+  display: none;
+}
+
+.aed-panel-summary::before {
+  content: "▸";
+  color: var(--text-dim);
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.aed-panel[open] .aed-panel-summary::before {
+  transform: rotate(90deg);
+}
+
+.aed-panel-title {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.aed-panel-count {
+  font-size: 11px;
+  color: var(--green);
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.aed-panel-body {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 360px;
+  font-size: 12px;
+}
+
+.aed-empty {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 32px 0;
+  font-style: italic;
+}
+
+/* ===================================================================
+ * 消息卡片
+ *
+ * - user：绿色左边框
+ * - assistant：橙色左边框
+ * - toolResult：蓝色左边框
+ * - streaming：橙色脉冲动画 + 'streaming' 徽章
+ * - saved：✓ S{N} 徽章
+ * - compacted（ns-3）：opacity:0.3 + 删除线 + compacted 标签
+ *
+ * ns-2 新增动画类：
+ * - .aed-msg-saved：save 时绿色边框单次闪烁
+ * - .aed-flash-in：PLAY 模式 assistant 消息出现时单次淡入
+ *
+ * content blocks：
+ * - text：默认色
+ * - tool_use：橙色边框 + 等宽
+ * - tool_result：绿色边框 + 等宽
+ * - placeholder：虚化（streaming 占位）
+ * - .aed-typewriter-text（ns-2）：STEP 模式 streaming 打字机
+ * - .aed-block-long-text（ns-2）：长文本整块淡入
+ * - .aed-block-appear（ns-2）：新增 block 高亮
+ * =================================================================== */
+
+.aed-msg {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-left: 3px solid var(--border);
+  background: var(--surface);
+  animation: aed-fade-in 0.4s ease;
+  transition: all 0.3s ease;
+}
+
+@keyframes aed-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.aed-msg-user {
+  border-left-color: var(--green);
+}
+
+.aed-msg-assistant {
+  border-left-color: var(--orange);
+}
+
+.aed-msg-toolResult {
+  border-left-color: var(--yellow);
+}
+
+.aed-msg-assistant.streaming {
+  border-left-color: var(--orange);
+  animation: aed-streaming-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes aed-streaming-pulse {
+  0%, 100% { box-shadow: -3px 0 8px var(--glow-orange); }
+  50% { box-shadow: -3px 0 16px var(--glow-orange); }
+}
+
+/* ns-2 aed-msg-saved：save 时绿色边框单次闪烁 */
+.aed-msg.aed-msg-saved {
+  animation: aed-msg-saved 0.6s ease-in-out 1;
+}
+
+@keyframes aed-msg-saved {
+  0%, 100% { border-left-color: var(--orange); }
+  50% {
+    border-left-color: var(--green);
+    box-shadow: -3px 0 12px var(--glow-orange);
+  }
+}
+
+/* ns-2 aed-flash-in：PLAY 模式 assistant 消息出现时单次淡入 */
+.aed-msg.aed-flash-in {
+  animation: aed-flash-in 0.8s ease-out 1;
+}
+
+@keyframes aed-flash-in {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
+
+/* ns-3 compacted：overflow 删除消息的灰化保留 */
+.aed-msg.compacted {
+  opacity: 0.3;
+  text-decoration: line-through;
+}
+
+.aed-msg-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.aed-msg-role {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.aed-msg-user .aed-msg-role {
+  color: var(--green);
+}
+
+.aed-msg-assistant .aed-msg-role {
+  color: var(--orange);
+}
+
+.aed-msg-toolResult .aed-msg-role {
+  color: var(--yellow);
+}
+
+.aed-streaming-badge {
+  font-size: 9px;
+  color: var(--orange);
+  border: 1px solid var(--orange);
+  padding: 1px 6px;
+  animation: aed-blink 1s ease-in-out infinite;
+}
+
+@keyframes aed-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.aed-save-badge {
+  font-size: 9px;
+  color: var(--green);
+  border: 1px solid var(--green);
+  padding: 1px 6px;
+  margin-left: auto;
+}
+
+/* ns-3 compacted 标签 */
+.aed-compacted-badge {
+  font-size: 9px;
+  color: var(--red);
+  border: 1px solid var(--red);
+  padding: 1px 6px;
+  margin-left: auto;
+}
+
+.aed-msg-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aed-block {
+  padding: 4px 6px;
+  font-size: 11px;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.aed-block-type {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.aed-block-content {
+  color: var(--text);
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.aed-block-text .aed-block-content {
+  color: var(--text);
+}
+
+.aed-block-tool_use {
+  border-left: 2px solid var(--orange);
+  padding-left: 8px;
+  background: var(--surface);
+}
+
+.aed-block-tool_use .aed-block-content {
+  color: var(--orange);
+  font-weight: 600;
+}
+
+.aed-block-tool_result {
+  border-left: 2px solid var(--green);
+  padding-left: 8px;
+  background: var(--surface);
+}
+
+.aed-block-tool_result .aed-block-content {
+  color: var(--green);
+}
+
+.aed-block-placeholder {
+  color: var(--text-dim);
+  font-style: italic;
+  opacity: 0.6;
+  display: block;
+  padding: 4px 6px;
+}
+
+/* ns-2 打字机：STEP 模式 + streaming，text 块 ≤40 字符 */
+.aed-block-text.aed-typewriter-text .aed-block-content {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  animation: aed-typewriter-text 0.8s steps(8, end) 1;
+}
+
+@keyframes aed-typewriter-text {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* ns-2 tool_use 块打字机：3 阶段（name + input + 闭合） */
+.aed-block-tool_use.aed-typewriter-text .aed-block-content {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  animation: aed-typewriter-text 0.8s steps(3, end) 1;
+}
+
+/* ns-2 长文本整块淡入（text 块 >40 字符，避免多行折行） */
+.aed-block-text.aed-block-long-text .aed-block-content {
+  animation: aed-block-long-fade 0.4s ease 1;
+}
+
+@keyframes aed-block-long-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ns-2 block appear：新增 block 高亮（opacity + translateY + 橙色背景 flash） */
+.aed-block.aed-block-appear {
+  animation: aed-block-appear 0.4s ease-out 1;
+}
+
+@keyframes aed-block-appear {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  40% {
+    opacity: 1;
+    background: var(--glow-orange);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    background: transparent;
+  }
+}
+
+/* ===================================================================
+ * 事件流面板
+ *
+ * 终端样式：> 开头，7 色分类标签（含 PI·REAL 紫色）。
+ * =================================================================== */
+
+.aed-events-body {
+  font-family: var(--font-mono);
+  background: var(--bg);
+}
+
+.aed-event {
+  color: var(--text-dim);
+  padding: 2px 0;
+  animation: aed-fade-in 0.3s ease;
+  line-height: 1.6;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.aed-event:first-child {
+  padding-top: 0;
+}
+
+.aed-event-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.aed-event-content {
+  color: var(--text);
+  word-break: break-all;
+  font-size: 11px;
+}
+
+/* ns-3 overflow 提示条（消息面板顶部，600ms 消失） */
+.aed-overflow-toast {
+  background: var(--red);
+  color: var(--bg);
+  padding: 6px 10px;
+  font-size: 10px;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+  animation: aed-fade-in 0.2s ease;
+}
+
+/* ===================================================================
+ * Footer：phase 指示器 + 步骤信息 + 进度条 + 退出条件
+ *
+ * ns-3 新增 .aed-phase-indicator（6 态颜色，role=status）
+ * =================================================================== */
+
+.aed-footer {
+  border-top: 1px solid var(--border);
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: var(--bg);
+}
+
+/* ns-3 phase 指示器：圆点 + 文字，6 态颜色 */
+.aed-phase-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.aed-phase-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.aed-phase-label {
+  font-family: var(--font-mono);
+}
+
+.aed-step-info {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.aed-step-num {
+  font-size: 11px;
+  color: var(--orange);
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.aed-step-label {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.aed-subframe-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.aed-loop-count {
+  font-size: 11px;
+  color: var(--green);
+  border: 1px solid var(--green);
+  padding: 2px 8px;
+  font-weight: 600;
+}
+
+.aed-condition {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 4px 10px;
+  border: 1px dashed var(--border);
+  margin-left: auto;
+}
+
+.aed-condition-key {
+  color: var(--text-dim);
+}
+
+.aed-condition-op {
+  color: var(--text-dim);
+}
+
+.aed-condition-val {
+  font-weight: 700;
+}
+
+.aed-condition.continue .aed-condition-val,
+.aed-condition.continue .aed-condition-action {
+  color: var(--orange);
+}
+
+.aed-condition.exit .aed-condition-val,
+.aed-condition.exit .aed-condition-action {
+  color: var(--green);
+}
+
+/* 进度条 */
+.aed-progress-bar {
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.aed-progress-fill {
+  height: 100%;
+  background: var(--orange);
+  transition: width 0.4s ease;
+}
+
+/* ===================================================================
+ * 响式：窄屏垂直布局（ns-4 三档）
+ *
+ * - <768px：Grid 单列 + SVG 切换垂直 path + 面板单列
+ * - <480px：loop-inner 也改 column
+ * =================================================================== */
+
+@media (max-width: 768px) {
+  /** SVG path 切换：隐藏水平 path，显示垂直 path（ns-4） */
+  .aed-link-h {
+    display: none;
+  }
+  .aed-link-v {
+    display: block;
+  }
+
+  .aed-nodes-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .aed-loop-region {
+    margin: 0;
+  }
+
+  .aed-panels {
+    grid-template-columns: 1fr;
+  }
+
+  .aed-panel-body {
+    max-height: 240px;
+  }
+
+  .aed-condition {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .aed-controls {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .aed-branch-switcher {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  /** 超窄屏 loop-inner 也垂直堆叠（ns-4） */
+  .aed-loop-inner {
+    flex-direction: column;
+  }
+
+  .aed-channel-labels {
+    flex-direction: row;
+    gap: 8px;
+  }
+}
+
+/* ===================================================================
+ * prefers-reduced-motion 降级（ns-4 完整 12 项）
+ *
+ * v3 已有 6 项：pulse/blink/packet/link-dash/msg-fade/event-fade
+ * v4 新增 6 项：typewriter-text/block-appear/3 包接力/flash-in/blur/compacted
+ * 降级后核心教学信息不丢失（streaming 标签静态保留、compacted 删除线静态保留）
+ * =================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  /** v3 已有 6 项 */
+  .aed-node-active,
+  .aed-loop-region.active,
+  .aed-msg-assistant.streaming,
+  .aed-streaming-badge,
+  .aed-spin-badge {
+    animation: none;
+  }
+
+  .aed-packet {
+    display: none;
+  }
+
+  .aed-link {
+    stroke-dasharray: none;
+  }
+
+  .aed-msg,
+  .aed-event {
+    animation: none;
+  }
+
+  /** v4 新增 6 项（ns-4） */
+  .aed-typewriter-text .aed-block-content {
+    animation: none;
+    width: 100%;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .aed-block-appear {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .aed-block-long-text .aed-block-content {
+    animation: none;
+    opacity: 1;
+  }
+
+  /** 3 包接力降级：只保留第一个包，隐藏后两个（ns-4） */
+  .aed-packet:nth-child(n+2) {
+    display: none;
+  }
+
+  .aed-flash-in {
+    animation: none;
+  }
+
+  /** JUMP blur 滤镜降级：opacity 0.5 无 blur，避免眩晕（ns-4） */
+  .aed-panels.jumping {
+    filter: none;
+    opacity: 0.5;
+  }
+
+  /** compacted 动画降级为静态删除线（ns-4） */
+  .aed-msg.compacted {
+    animation: none;
+  }
+
+  .aed-msg-saved,
+  .aed-jumping-hint {
+    animation: none;
+  }
+}

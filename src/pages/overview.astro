@@ -1,0 +1,130 @@
+---
+import Layout from "../layouts/Layout.astro";
+import OverviewDiagram from "../components/diagrams/OverviewDiagram.tsx";
+import AgentExecutionDiagram from "../components/diagrams/AgentExecutionDiagram.tsx";
+import ChapterCard from "../components/ChapterCard.astro";
+import { getCollection } from "astro:content";
+
+/**
+ * pi 总览页。
+ * 用一张动态主图展示 pi 一次完整执行的 14 个核心模块流程，
+ * 下方附章节卡片列表，方便读者学完后回来查漏补缺。
+ * @author fxbin
+ */
+const chapters = (await getCollection("chapters")).sort((a, b) => a.data.order - b.data.order);
+---
+
+<Layout title="pi 总览 · pi-learn" description="pi 一次完整执行的 14 个核心模块流程">
+  <article class="overview-page">
+    <div class="overview-main">
+      <div class="overview-meta">
+        <div class="overview-num">OVERVIEW</div>
+        <h1>pi 执行流程总览</h1>
+        <p class="overview-description">
+          14 个核心模块，按 pi 一次完整执行的顺序串联。
+          点击 PLAY 看流程如何流转，点击已点亮的模块跳转到对应章节。
+        </p>
+      </div>
+
+      <div class="overview-content">
+        <OverviewDiagram client:load />
+
+        <h2>Agent 执行流程</h2>
+        <p class="overview-section-desc">
+          一次完整的 agent 执行内部细节：消息数组实时增长（"消息数组即状态"），
+          事件流逐行追加，Agent Loop 循环区脉冲跳动。
+          退出判断看 content 里有没有 tool_use 块，与 pi 一致。
+        </p>
+        <AgentExecutionDiagram client:load />
+
+        <h2>章节索引</h2>
+        <div class="overview-grid">
+          {chapters.map((ch) => (
+            <ChapterCard
+              num={ch.data.num}
+              title={ch.data.title}
+              description={ch.data.description}
+              href={`/pi-learn/chapters/${ch.id.replace(/\.(md|mdx)$/, "")}/`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .overview-page {
+    padding: 120px 0 80px;
+    min-height: 100vh;
+  }
+
+  .overview-main {
+    max-width: min(1100px, calc(100vw - 48px));
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+
+  .overview-meta {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 48px;
+    margin-bottom: 48px;
+  }
+
+  .overview-num {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--orange);
+    margin-bottom: 16px;
+  }
+
+  .overview-meta h1 {
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 20px;
+  }
+
+  .overview-description {
+    font-size: 18px;
+    color: var(--text-dim);
+    max-width: 720px;
+    line-height: 1.6;
+  }
+
+  .overview-content {
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  .overview-content h2 {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-top: 64px;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .overview-section-desc {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-bottom: 24px;
+    max-width: 720px;
+  }
+
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  @media (max-width: 768px) {
+    .overview-main {
+      padding: 0 24px;
+    }
+  }
+</style>

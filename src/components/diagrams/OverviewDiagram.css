@@ -1,0 +1,258 @@
+/*
+ * OverviewDiagram 样式。
+ * 蛇形网格布局：3 行 x 5 列，节点按执行顺序点亮。
+ * 所有颜色使用 CSS 变量，支持暗/亮主题切换。
+ * @author fxbin
+ */
+
+.ovd-root {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 32px 0;
+  font-family: var(--font-mono);
+  box-shadow: 0 20px 60px var(--shadow);
+}
+
+.ovd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ovd-title {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+}
+
+.ovd-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.ovd-controls button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ovd-controls button:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+/*
+ * 舞台布局：竖向排列——输入端点、网格、输出端点。
+ * 网格用 CSS Grid 控制节点位置，蛇形流向靠节点本身的 row/col 属性。
+ */
+.ovd-stage {
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/*
+ * 输入/输出端点：圆形或圆角节点，视觉上标识流程的起止。
+ */
+.ovd-endpoint {
+  display: flex;
+  justify-content: center;
+}
+
+.ovd-endpoint-node {
+  border: 1px dashed var(--border);
+  background: var(--bg);
+  padding: 10px 24px;
+  font-size: 12px;
+  color: var(--text-dim);
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.ovd-endpoint-node.active {
+  border-color: var(--orange);
+  border-style: solid;
+  color: var(--orange);
+  box-shadow: 0 0 16px var(--glow-orange);
+}
+
+.ovd-endpoint-node.done {
+  border-color: var(--green);
+  border-style: solid;
+  color: var(--green);
+}
+
+/*
+ * 网格：3 行 x 5 列，节点按 row/col 属性放置。
+ * 列宽和行宽固定，保证节点对齐整齐。
+ */
+.ovd-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(3, auto);
+  gap: 16px;
+  width: 100%;
+  max-width: 900px;
+}
+
+/*
+ * 节点：模块卡片，显示章节号 + 模块名。
+ * 三种状态：pending（暗淡）、active（橙色高亮）、done（绿色完成）。
+ * 非 pending 状态可点击跳转。
+ */
+.ovd-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  text-decoration: none;
+  color: var(--text);
+  transition: all 0.3s ease;
+  position: relative;
+  min-height: 72px;
+  cursor: default;
+}
+
+.ovd-node-pending {
+  opacity: 0.3;
+}
+
+.ovd-node-active {
+  border-color: var(--orange);
+  box-shadow: 0 0 20px var(--glow-orange);
+  opacity: 1;
+}
+
+.ovd-node-done {
+  border-color: var(--green);
+  opacity: 1;
+  cursor: pointer;
+}
+
+.ovd-node-done:hover {
+  background: var(--surface-2);
+  transform: translateY(-2px);
+}
+
+.ovd-node-chapter {
+  font-size: 10px;
+  color: var(--orange);
+  letter-spacing: 0.1em;
+}
+
+.ovd-node-done .ovd-node-chapter {
+  color: var(--green);
+}
+
+.ovd-node-label {
+  font-size: 13px;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.3;
+}
+
+/*
+ * Agent Loop 节点的循环徽章。
+ * active 状态时旋转，视觉表达 loop 语义。
+ */
+.ovd-loop-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--text-dim);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--bg);
+  transition: all 0.3s ease;
+}
+
+.ovd-loop-badge.spinning {
+  border-color: var(--orange);
+  color: var(--orange);
+  animation: ovd-spin 1.2s linear infinite;
+}
+
+@keyframes ovd-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/*
+ * 底部状态栏：显示当前步骤的章节号、模块名、职责说明。
+ */
+.ovd-footer {
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ovd-step-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ovd-step-num {
+  font-size: 11px;
+  color: var(--orange);
+  letter-spacing: 0.1em;
+}
+
+.ovd-step-label {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid var(--orange);
+}
+
+.ovd-step-label:hover {
+  color: var(--orange);
+}
+
+.ovd-step-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/*
+ * 窄屏响应式：网格改为 2 列，节点按流式顺序排列。
+ * 隐藏 grid 的 row/col 属性影响，改为自动流。
+ */
+@media (max-width: 768px) {
+  .ovd-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ovd-node {
+    grid-row: auto !important;
+    grid-column: auto !important;
+  }
+
+  .ovd-node-label {
+    font-size: 12px;
+  }
+}
