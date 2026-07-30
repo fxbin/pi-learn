@@ -1,18 +1,25 @@
+/**
+ * s08 ProviderDiagram 样式。
+ * 三层垂直布局：主循环 → AgentMessage 抽象层 → 两个并列供应商实现。
+ * 颜色全部走 CSS 变量，支持暗/亮主题切换。
+ * @author fxbin
+ */
+
 .pd-root {
   background: var(--surface);
   border: 1px solid var(--border);
-  margin: 32px 0;
+  margin: 40px 0;
   font-family: var(--font-mono);
 }
 
 .pd-header {
-  padding: 16px 20px;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
 }
 
 .pd-title {
@@ -23,14 +30,14 @@
 
 .pd-controls {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .pd-controls button {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text);
-  padding: 6px 12px;
+  padding: 8px 14px;
   font-family: var(--font-mono);
   font-size: 11px;
   cursor: pointer;
@@ -44,30 +51,70 @@
 }
 
 .pd-stage {
-  padding: 48px 24px;
+  padding: 40px 28px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 0;
 }
 
+/* 三层容器 */
+.pd-layer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.pd-layer-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pd-layer-tag {
+  font-size: 9px;
+  padding: 2px 6px;
+  border: 1px solid var(--green);
+  color: var(--green);
+  letter-spacing: 0.05em;
+  text-transform: none;
+}
+
+/* 单个盒子 */
 .pd-box {
   border: 1px solid var(--border);
   background: var(--bg);
   padding: 20px;
-  min-width: 180px;
+  min-width: 220px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  transition: all 0.3s ease;
 }
 
 .pd-box.loop {
   border-color: var(--green);
 }
 
-.pd-box.provider {
+.pd-box.middle {
   border-color: var(--orange);
+  min-width: 320px;
+}
+
+.pd-box.provider {
+  flex: 1;
+  min-width: 240px;
+}
+
+.pd-box.provider-active {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 1px var(--orange), 0 8px 24px var(--glow-orange);
 }
 
 .pd-box-title {
@@ -77,56 +124,158 @@
   letter-spacing: 0.1em;
 }
 
-.pd-box code {
+.pd-box-code {
   font-size: 12px;
   color: var(--green);
 }
 
 .pd-provider-name {
-  font-size: 18px;
+  font-size: 16px;
   color: var(--orange);
   font-weight: 700;
 }
 
-.pd-connector {
+.pd-feature-list {
+  list-style: none;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 6px;
+  margin: 0;
+  padding: 0;
 }
 
-.pd-arrow {
-  font-size: 20px;
+.pd-feature-list li {
+  font-size: 12px;
+  color: var(--text);
+  padding-left: 12px;
+  position: relative;
+}
+
+.pd-feature-list li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
   color: var(--text-dim);
 }
 
-.pd-note {
+/* mini-pi 简化提示 */
+.pd-simplification-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 10px;
   color: var(--text-dim);
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.pd-note-tag {
+  padding: 2px 6px;
+  border: 1px dashed var(--text-dim);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
+/* 向下箭头 */
+.pd-arrow-down {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 0;
+  position: relative;
+}
+
+.pd-arrow-line {
+  width: 1px;
+  height: 24px;
+  background: var(--text-dim);
+}
+
+.pd-arrow-tip {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1;
+}
+
+.pd-arrow-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+/* 第 3 层：两个供应商并列 */
+.pd-providers-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+  max-width: 760px;
+}
+
+.pd-providers-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.pd-current-name {
+  color: var(--orange);
+  font-weight: 700;
+}
+
+/* wire 格式列表 */
 .pd-wire-list {
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin: 0;
+  padding: 0;
 }
 
 .pd-wire-list li {
   font-size: 11px;
   color: var(--text);
+  word-break: break-all;
 }
 
 .pd-wire-list strong {
   color: var(--text-dim);
   margin-right: 8px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10px;
+  display: inline-block;
+  min-width: 64px;
 }
 
 .pd-footer {
   border-top: 1px solid var(--border);
-  padding: 16px 20px;
+  padding: 20px 24px;
   text-align: center;
   font-size: 11px;
   color: var(--text-dim);
+}
+
+/* 窄屏：两供应商垂直堆叠 */
+@media (max-width: 768px) {
+  .pd-providers-row {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-box.middle {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pd-box.provider {
+    min-width: 0;
+  }
 }

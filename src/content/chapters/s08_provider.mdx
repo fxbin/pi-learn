@@ -57,14 +57,16 @@ interface LlmProvider {
 
 两份实现：
 
-| 实现 | 端点 | 转换量 |
+| 实现 | 端点 | 数据模型 |
 |---|---|---|
-| `AnthropicProvider` | `/v1/messages` | 零——内部模型本就是 Anthropic 形状 |
-| `OpenAIProvider` | `/v1/chat/completions` | 双向——请求 tool_use→tool_calls，响应 tool_calls→tool_use |
+| `AnthropicProvider` | `/v1/messages` | Anthropic 原生（content 块数组、tool_use 块、input 对象） |
+| `OpenAIProvider` | `/v1/chat/completions` | OpenAI 原生（content 字符串 + tool_calls 数组、arguments JSON 字符串） |
 
-**关键决策：内部 ChatMessage 始终用 Anthropic 形状。** 这不是偏袒 Anthropic，而是选一个"够用"的内部模型然后坚持到底。转换只发生在 `OpenAIProvider.complete()` 的边界上——进去时把内部形状翻成 OpenAI wire，出来时翻回来。主循环、工具执行、消息历史，全部不感知后端差异。
+**关键决策：两套供应商数据模型平等独立，pi 抽象出第三套内部模型（AgentMessage）做中间层。** 这不是"一个模型转换成另一个模型"——Anthropic 和 OpenAI 是两套各自完整的数据模型，差异不止 wire 序列化，而是消息结构、工具调用、流式协议、thinking 字段全都不一样。pi 在 `packages/agent/src/types.ts` 定义了不偏向任何供应商的 `AgentMessage` 类型（`toolCall`/`toolResult` 是独立 role，不是 content 块），主循环、工具执行、消息历史全部只跟这套内部模型打交道。
 
-这就是**消息边界**：内部模型 ≠ 线格式，边界处做一次翻译，两边互不污染。pi 的 `transform-messages.ts` 干的也是这件事，只是它还要处理 thinking 块、跨供应商 ID 规范化等更复杂的情况。
+mini-pi 为了减少一层抽象，**选了 Anthropic 形状当内部模型**——这是教学简化，代价是 AnthropicProvider 零转换、OpenAIProvider 看起来像"翻译器"。真实的 pi 里两个 Provider 是平等独立的完整实现，各自调自己的 SDK、解析自己的流式协议，中间隔着一层 AgentMessage 抽象。
+
+这就是**消息边界**：内部模型 ≠ 供应商数据模型，边界处做一次翻译，两边互不污染。pi 的 `transform-messages.ts` 干的就是从 AgentMessage 到供应商 wire 的双向翻译，只是它还要处理 thinking 块、跨供应商 ID 规范化等更复杂的情况。
 
 `main()` 里一行切换后端：
 
@@ -80,9 +82,9 @@ const provider: LlmProvider = CONFIG.provider === "openai" ? new OpenAIProvider(
 
 打开 [code.ts](/pi-learn/chapters/s08_provider/code.ts)，重点看三块。
 
-**第 1 块：接口与 AnthropicProvider。** 接口定义了边界契约——`name` 标识身份，`complete` 负责一次 LLM 调用。`AnthropicProvider` 的 `complete()` 与 s01 的 `callLlm` 几乎逐行相同：同样的端点、同样的请求头、同样的 body 结构。区别只是它现在是一个类，配置从 `CONFIG` 全局搬到了实例属性上。
+**第 1 块：接口与 AnthropicProvider。** 接口定义了边界契约——`name` 标识身份，`complete` 负责一次 LLM 调用。`AnthropicProvider` 的 `complete()` 与 s01 的 `callLlm` 几乎逐行相同：同样的端点、同样的请求头、同样的 body 结构。注意它是**一份独立的完整实现**——直接调 Anthropic SDK、解析 Anthropic 流式协议、返回 Anthropic 形状的响应，不是"翻译器"。在 pi 里它对应 [`packages/ai/src/providers/anthropic.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/providers/anthropic.ts) 的 `streamAnthropic` 函数。
 
-**第 2 块：OpenAIProvider 的边界转换。** 这是本章全部的新东西，分两个方向：
+**第 2 块：OpenAIProvider 的独立实现。** 这是本章全部的新东西。`OpenAIProvider` 同样是**一份完整的独立实现**——直接调 OpenAI SDK、解析 OpenAI 流式协议。因为 mini-pi 内部选了 Anthropic 形状，所以 `complete()` 内部要做双向翻译，分两个方向：
 
 *请求方向* `toWire()`：把内部消息翻成 OpenAI wire 格式。
 
@@ -204,7 +206,7 @@ mini-pi 的 provider 比pi 简单很多，以及为什么省略是安全的：
 | 省略项 | pi 的做法 | 为什么本章可以省 |
 |---|---|---|
 | 流式输出 | `StreamFunction` 逐 token 推送，每个供应商一套 stream 解析 | 非流式一次性返回，语义相同，只少了打字机效果 |
-| 内部模型独立设计 | pi 有自己的 `Message` 类型（toolCall/toolResult 独立 role），不偏向任何供应商 | 我们选 Anthropic 形状当内部模型，省掉一层翻译 |
+| 内部模型独立设计 | pi 有自己的 `AgentMessage` 类型（`toolCall`/`toolResult` 独立 role，不偏向任何供应商），主循环只跟内部模型打交道，供应商实现各自完整 | mini-pi 选 Anthropic 形状当内部模型，省掉了 AgentMessage 中间层抽象，代价是 OpenAIProvider 看起来像"翻译器"而非独立实现 |
 | 跨供应商 ID 规范化 | `normalizeToolCallId` 把 OpenAI 长 ID 压缩成 Anthropic 合法 ID | 单后端会话不会跨供应商，ID 原样传递不报错 |
 | thinking 块处理 | `transform-messages` 按模型降级/丢弃/转译 thinking | 我们没有 thinking 块，跳过整条路径 |
 | 重试与错误分类 | `retryProviderRequest` 指数退避，按状态码分类重试 | 直接抛异常终止，把失败暴露给学习者 |

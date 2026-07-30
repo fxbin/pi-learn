@@ -72,9 +72,6 @@ s01_agent_loop/ ... s08_provider/   八章主线，每章 README + code.ts + pra
 appendix/                           TS 急救包 + 语言无关概念映射
 extras/                             番外：extensions / OAuth / TUI
 .reference/pi/                      pi v0.76.0 源码快照（章末对照用）
-.reference/learn-claude-code/       课程范式参照
 ```
-
-课程范式参照：[learn-claude-code](https://github.com/shareAI-lab/learn-claude-code)。关键差异：本课程一条累积主线长出 mini-pi（非孤立章节代码），章末锚定并可修改 pi 真实源码，每章附妥协清单说明 mini-pi 比真 pi 少做了什么。
 
 作者：fxbin
