@@ -52,13 +52,19 @@
   display: flex;
   align-items: baseline;
   gap: 12px;
+  min-width: 0;
+  flex: 1;
 }
 
 .cd-filename {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text);
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .cd-line-count {
@@ -86,7 +92,8 @@
 }
 
 .cd-copy-btn:hover:not(:disabled),
-.cd-close-btn:hover {
+.cd-close-btn:hover,
+.cd-github-btn:hover {
   border-color: var(--orange);
   color: var(--orange);
 }
@@ -94,6 +101,24 @@
 .cd-copy-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/*
+ * GitHub 外链按钮：仅 GitHub 源链接显示。
+ * 与复制/关闭按钮同款样式，文字颜色用 --text-dim 区分外链动作。
+ */
+.cd-github-btn {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .cd-close-btn {
@@ -117,6 +142,29 @@
 }
 
 /*
+ * 加载失败提示：网络或 CORS 失败时显示，
+ * 提供"在 GitHub 查看"外链作为 fallback，不把用户卡在死胡同。
+ */
+.cd-error {
+  padding: 48px;
+  text-align: center;
+  color: var(--red);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.cd-error-link {
+  color: var(--orange);
+  border-bottom: 1px solid var(--orange);
+  text-decoration: none;
+  padding-bottom: 2px;
+}
+
+/*
  * 代码区：双列网格，左列行号（固定宽，右对齐，dim 色），
  * 右列代码（高亮 span 着色）。每行一个 grid row，行号不随水平滚动消失。
  */
@@ -136,6 +184,19 @@
 
 .cd-line-row:hover {
   background: var(--surface-2);
+}
+
+/*
+ * 锚点行高亮：带 #L<行号> 的 GitHub 链接打开后，
+ * 对应行加背景色并左侧加橙色边条，视觉锚定到目标位置。
+ */
+.cd-line-row.cd-line-anchor {
+  background: var(--glow-orange);
+  box-shadow: inset 3px 0 0 var(--orange);
+}
+
+.cd-line-row.cd-line-anchor:hover {
+  background: var(--glow-orange);
 }
 
 .cd-line-num {
