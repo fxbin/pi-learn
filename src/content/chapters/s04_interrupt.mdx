@@ -134,10 +134,11 @@ mini-pi 比真 pi 少做了什么，以及为什么省略是安全：
 |---|---|---|
 | 双层循环 | 外层 follow-up + 内层 steering/工具 | 本章一问一答，没有"agent 停了又被新消息唤起"的场景，单层够用 |
 | 错误编码进流 | streamFn 不抛错，错误作为 `stopReason: error/aborted` | mini-pi 用原生 fetch，abort 直接抛 `AbortError`，try/catch 更直观 |
-| signal 贯穿工具 | 工具执行也收 signal，长任务可被中断 | 本章 bash 用 `spawnSync` 同步阻塞，signal 在执行中无法响应；s02 换异步工具后才有意义 |
+| signal 贯穿工具 | 工具执行也收 signal，长任务可被中断 | 本章 bash 用 `spawnSync` 同步阻塞，signal 在执行中无法响应；s04 自身换异步工具后才有意义（s02 仍是 spawnSync 同步，signal 无法贯穿同步进程） |
 | 并发输入 | TUI 输入框始终可打字，实时入 steering 队列 | 单行 REPL 阻塞，用时间预算示例等价演示"运行中注入" |
 | shouldStopAfterTurn 钩子 | 每轮后调回调决定是否停 | 用硬编码 `maxTurns` 表达同一个思想，钩子是它的泛化 |
 | prepareNextTurn | 每轮后可换 model / 改 context | 本章无动态切换需求 |
+| 启动前 drain steering | 真 pi 在循环开始前（agent-loop.ts 第 167 行）先调一次 getSteeringMessages | 教学版只在每轮开头 drain，会漏掉"agent 启动到首次调 LLM 之间"用户敲的字 |
 
 这张表往后会逐行划掉：s05 的 session 让 follow-up 有意义，s06 的 compaction 让 prepareNextTurn 有意义。
 

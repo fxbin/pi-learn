@@ -130,7 +130,7 @@ mini-pi 的 edit + queue，在真 pi 里对应三个文件：
 
 先读一遍，再回答三个问题（答案就在代码里）：
 
-1. `file-mutation-queue.ts` 第 9 行用 `WeakMap<ExecutionEnv, ...>` 按 env 隔离队列。为什么用 WeakMap 而不是全局 Map？（提示：env 的生命周期）
+1. `file-mutation-queue.ts` 用 `Map<string, Promise<void>>` 按 canonical path 分锁（key 是 realpath 归一化后的 canonical path）。为什么按 path 分锁而不是全局单队列？（提示：不同文件的编辑互不阻塞）
 2. `edit-diff.ts` 的 `fuzzyFindText` 先精确匹配，再走 `normalizeForFuzzyMatch`。什么情况下精确匹配失败但模糊匹配成功？（提示：看 normalize 做了哪些归一化）
 3. `edit.ts` 第 104-110 行：stripBom → detectLineEnding → normalizeToLF → applyEdits → restoreLineEndings。为什么不在原始字节上直接替换？（提示：CRLF 文件里 old_string 写的是 LF）
 
@@ -146,7 +146,8 @@ mini-pi 的 edit + queue，在真 pi 里对应三个文件：
 | BOM 处理 | `stripBom` 拆出 BOM，编辑后拼回 | UTF-8 BOM 在代码文件中罕见，省略不影响教学 |
 | 换行符归一 | CRLF → LF 匹配 → 还原 CRLF | Unix 环境默认 LF，跨平台是工程细节不是机制 |
 | diff 生成 | `generateDiffString` + `generateUnifiedPatch` 返回给模型看 | 教学版只返回"Edited path"，模型靠 read 验证 |
-| 按 path 分 key | `WeakMap<env, Map<canonicalPath, Promise>>` | 全局单队列，教学够用；真 pi 按 canonical path 分锁提升并发 |
+| 按 path 分 key | `Map<string, Promise<void>>`（key 是 realpath 归一化后的 canonical path，不是 ExecutionEnv） | 全局单队列，教学够用；真 pi 按 canonical path 分锁提升并发 |
+| cwd 子树校验 | edit 不做 cwd 子树校验，同 s02 | 教学版复用 `safePath`，真 pi 没有；详见 s02 妥协清单 |
 | 多编辑 | 一次 `edits[]` 数组，同原文匹配，逆序应用 | 教学版一次一个 old/new，简单直观 |
 | AbortSignal | signal 贯穿 read/write/abort 检查 | s04 专题讲，本章队列短 |
 

@@ -195,6 +195,8 @@ mini-pi 的流式基础设施比真 pi 简单很多，以及为什么省略是�
 | 多消费者 | 真 pi 允许多个 `for await` 并发消费同一流 | 单消费者已能讲清双输出，多消费者只是 `waiting` 数组多几项 |
 | SSE 解析 | 真 pi 按行解析 `data: ...\n\n` 帧、处理 `event:` 类型 | demo 直接 push 字符串 token，跳过 SSE 帧解析这层无关细节 |
 | `end(result)` 带参 | 真 pi 的 `end` 可显式传入最终结果（非 complete 事件触发的结束） | demo 用 complete 事件触发 resolve，`end()` 只做唤醒，简化签名 |
+| parseStreamingJson 层级 | 真 pi 层 1 是 `parseJsonWithRepair`（内部 try JSON.parse 失败 → repairJson），层 2 是 `partialParse`，层 3 是 `partialParse(repairJson)` | 教学版层 1 是 `JSON.parse`，层 2 是 `repairJson + JSON.parse`，把真 pi 的层 1 拆成了两层；读真 pi 源码时会困惑层 1 怎么是 `parseJsonWithRepair` |
+| NON_OVERFLOW_PATTERNS | 真 pi 有 3 个排除正则（overflow.ts 第 67-71 行），排除 rate limit / throttling 等非 overflow 错误 | 教学版无排除逻辑，可能误判限流为溢出 |
 
 这张表是 mini-pi 与真 pi 的差距地图。读完 pi 的 `event-stream.ts` 和 `json-parse.ts` 再回头看，你会看到每一项省略背后都有一道真 pi 在防的故障——尤其是 `partial-json` 那层，真 pi 能解析出半个对象的已有字段，本章只能返回 `{}`。
 

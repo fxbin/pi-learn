@@ -231,9 +231,11 @@ mini-pi 的 skills 比真 pi 简单很多，以及为什么省略是安全：
 | 按需加载 | system prompt 只放 catalog，模型调 `load_skill` 工具取正文 | 全部一次性注入更简单；token 费但教学场景 skill 少 |
 | 递归扫描 | `loadSkillsFromDirInternal` 递归进子目录，支持 `code-review/SKILL.md` 结构 | 平铺一层足够演示"文件即 prompt"；递归加复杂度不加新概念 |
 | ignore 文件 | 读 `.gitignore`/`.ignore` 跳过被忽略的 skill | skills/ 是用户自管目录，不混在仓库根，无需 ignore |
-| name 校验 | `validateName` 检查小写、连字符、长度、不与父目录名冲突 | 教学版不暴露 skill 给外部 API，名字只用于显示 |
+| name 校验 | `validateName` 检查小写、连字符、长度、必须等于父目录名（`validateName` 第 283 行 `if (name !== parentDirName)`） | 教学版不暴露 skill 给外部 API，名字只用于显示 |
 | diagnostic 类型码 | `SkillDiagnosticCode` 枚举 `read_failed`/`parse_failed`/... | 字符串消息够用；类型码是为程序化处理，我们只打印 |
 | 递归错误隔离 | `Result<T, E>` 类型包装每个 IO 操作 | try/catch + diagnostic 字符串更易读，教学版优先可读性 |
+| SKILL.md 优先级 | 目录下优先找 SKILL.md，找到就只加载它，跳过其他 .md | 教学版对所有 .md 文件都加载，无优先级；真 pi 的 SKILL.md 是"入口文件"语义 |
+| description 空丢弃 | `loadSkillFromFile` 第 265-267 行，description 为空返回 `skill:null` 丢弃 | 教学版不要求 description；真 pi 会丢弃无描述的 skill（但仍记录 diagnostic） |
 
 这张表的每一行都是真 pi 多花的工程量。读完 `skills.ts` 再回头看，你会更清楚每一项在防什么故障。
 

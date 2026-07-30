@@ -177,6 +177,8 @@ mini TUI 比真 pi 少做了什么，以及为什么省略是安全的：
 | Termux 兼容 | `isTermuxSession` 跳过高度变化重画 | 桌面终端，软件键盘场景不存在 |
 | height 变化处理 | `heightChanged` 分支单独清屏 | 只追踪 width，resize 演示够用 |
 | 清屏收缩 | `clearOnShrink` 配置清除多余行 | 行数固定，不会收缩 |
+| scheduleRender 自循环 | 真 pi `scheduleRender` 回调末尾检查 `renderRequested`，有新请求则继续调度（tui.ts 第 538-540 行） | 教学版回调末尾不检查，连续高频刷新会丢帧；单帧场景不受影响 |
+| requestRender(force) | 真 pi 支持 `force` 参数强制清屏重画（置 `previousWidth=-1`），用于主题切换等场景 | 教学版无 force 参数，无法强制重画；主题切换等场景需要 |
 
 这张表是 mini TUI 与真 pi 的差距地图：真 pi 在这套差分骨架上叠了图像、叠层、IME、滚动、移动端兼容，但核心差分逻辑就是本章这三块。
 

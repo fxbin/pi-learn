@@ -194,6 +194,11 @@ mini-pi 的 MiniAgentSession 比真 pi 的 AgentSession 少做了什么，以及
 | 事件类型 | 20+ 种事件（auto_retry_end / branch_summary / bash_execution...） | 5 种够演示订阅机制 |
 | 模型恢复 | `createAgentSession` 从 session 恢复上次模型 | 无持久化，无从恢复 |
 | scoped models | `--models` 限制可切换范围 | cycleModel 接受任意列表，调用方自行限制 |
+| compaction 自动触发 | `AgentHarness` 类是显式 `compact()` 调用，不自动 threshold 触发 | 教学版 `_checkCompactionAfter` 自动检测 threshold 并 compact；真 pi 的自动触发可能在 coding-agent 层（本课程未锚定该层源码），AgentHarness 只提供手动入口 |
+| emitHook 错误冒泡 | 真 pi `AgentHarness.emitHook` 错误冒泡（agent-harness.ts 第 244 行），不隔离 | 教学版 `_emit` 只是事件订阅通知，无 hook 概念；与 s10 描述的"三层错误隔离"存在叙事矛盾，真 pi 的 hook 错误是冒泡的 |
+| phase 状态机 | 真 pi 有显式 `phase: "idle"/"turn"/"compaction"/"branch_summary"` 字段 | 教学版用 `_isStreaming` + `_lastStopReason` 隐式表达；真 pi 的 `phase !== "idle"` 判断 busy 状态更准确 |
+| nextTurnQueue 第三队列 | 真 pi 有第三队列（agent-harness.ts 第 187 行），用于下一轮自动注入 | 教学版只有 steering + followUp 两队列；nextTurnQueue 用于"本轮结束后自动注入"的场景 |
+| pendingSessionWrites 延迟写入 | turn 进行中（phase !== "idle"）时 session 写入操作排队，turn 结束才 flush | 教学版无此机制；真 pi 避免 turn 进行中频繁写文件 |
 
 这张表每一行都是真 pi 多花的工程量。读完 `agent-session.ts` 的 constructor 再回头看，你会更清楚每一项在防什么故障。
 

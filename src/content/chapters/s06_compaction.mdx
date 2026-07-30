@@ -156,6 +156,8 @@ mini-pi 的压缩比真 pi 粗很多，以及为什么省略是安全：
 | 结构化摘要格式 | Goal/Progress/Decisions/NextSteps 分节 prompt | 一句扁平 prompt 已能演示"压缩 → 续接"的闭环 |
 | 文件操作追踪 | `extractFileOps` 记录读写文件附在摘要后 | 不追踪；摘要靠 LLM 自行保留"关键文件路径" |
 | 分支摘要 | `branch-summarization.ts` 摘要废弃的探索分支 | 单线性历史，无分支概念 |
+| 溢出后兜底 | `utils/overflow.ts` 22 个正则识别 provider 溢出错误，触发紧急 compaction | 教学版只有预防性 compaction（token 超阈值）；真 pi 还有 provider 返回溢出错误时的兜底，覆盖 Anthropic/OpenAI/Google 等 15+ provider |
+| compaction 持久化 | 追加 `CompactionEntry` 到 jsonl，旧消息不删除，`buildSessionContext` 按 `firstKeptEntryId` 跳过 | 教学版原地替换内存数组（`messages.length=0; push`），旧消息丢失；真 pi 的 compaction 可回溯（fork 到压缩前状态），s14 会展开 |
 
 这张表的每一行都是真 pi 多花的工程量。读完 `compaction.ts` 再回头看，你会更清楚每一项在防什么故障。
 

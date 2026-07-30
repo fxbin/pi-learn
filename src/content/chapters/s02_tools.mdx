@@ -159,6 +159,11 @@ mini-pi 的三个工具，在真 pi 里对应四个文件：
 | 异步执行 | `executeShellWithCapture` 流式异步 | 教学版 `spawnSync` 同步阻塞，循环短可接受 |
 | 变更队列 | write 经 `withFileMutationQueue` 串行 | s03 专题；本章一轮一写，不会交错 |
 | AbortSignal | signal 贯穿 read/write 全链路 | s04 专题讲；本章循环短，Ctrl+C 够用 |
+| cwd 子树校验 | read/write 不做 cwd 子树校验，安全边界交给 `beforeToolCall` 审批钩子 + system prompt | 教学版加 `safePath` 防止写 `/etc/passwd`，真 pi 没有这层；教学场景需要这层保护，但要知道真 pi 的安全模型不是路径校验 |
+| 命令黑名单 | bash 工具无黑名单，风险由 prompt + 审批钩子兜底 | 教学版硬编码 `["rm -rf /","sudo",...]`，真 pi 完全没有；教学需要这层护栏，但要知道真 pi 不做字符串黑名单 |
+| 超时默认值 | bash schema 无默认超时，模型按需传 timeout | 教学版硬编码 120s，真 pi 可跑半小时长任务；教学需要护栏防止卡死 |
+| 输出截断方向 | bash 保留尾部（`truncateTail`），错误信息通常在末尾 | 教学版 `slice(0, N)` 保留头部，会截掉错误堆栈；真 pi 还保存完整输出到临时文件并提示路径 |
+| dispatch 表结构 | `ToolDefinition<schema>` 对象，execute 签名带 signal/onUpdate/ctx | 教学版是 `Record<string, (input)=>string>` 同步函数表；s04 的 signal 贯穿、s05 的事件流都依赖对象签名 |
 
 ---
 

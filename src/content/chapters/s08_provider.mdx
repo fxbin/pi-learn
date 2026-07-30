@@ -136,17 +136,20 @@ node code.ts
 
 ## deepseek 选读：改 baseUrl 就能换供应商
 
-[deepseek](https://api.deepseek.com) 的 API 是 **OpenAI 兼容**的——同样的 `/v1/chat/completions` 端点、同样的 `tool_calls` 格式、同样的 `Bearer` 认证。pi 源码里 `providers/deepseek.ts` 只有一件事值得关注：
+[deepseek](https://api.deepseek.com) 的 API 是 **OpenAI 兼容**的——同样的 `/v1/chat/completions` 端点、同样的 `tool_calls` 格式、同样的 `Bearer` 认证。deepseek 在 pi 里**没有独立的 provider 文件**，它复用 `openai-completions.ts` 的实现，靠内部的 `detectCompat` 函数识别。
+
+`detectCompat` 在 [`packages/ai/src/providers/openai-completions.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/providers/openai-completions.ts) 第 1099 行判断 deepseek：
 
 ```typescript
-return createProvider({
-    id: "deepseek",
-    baseUrl: "https://api.deepseek.com",
-    api: openAICompletionsApi(),
-});
+const isDeepSeek = provider === "deepseek" || baseUrl.includes("deepseek.com");
 ```
 
-它复用的就是 OpenAI 的 API 实现，只换了 `baseUrl`。我们的 `OpenAIProvider` 同理：
+识别后设置两个兼容选项（第 1110-1113 行）：
+
+- `requiresReasoningContentOnAssistantMessages: true`——deepseek 把 reasoning 放在 `message.reasoning_content`，需要从 assistant 消息里读回
+- `thinkingFormat: "deepseek"`——切换到 deepseek 专属的 thinking 块处理分支
+
+核心结论不变：deepseek 复用 OpenAI 的 API 实现，只换 `baseUrl`。我们的 `OpenAIProvider` 同理：
 
 ```bash
 export PROVIDER=openai
@@ -186,9 +189,9 @@ mini-pi 的两个 provider 是教学级简化。真 pi 的供应商抽象分布�
 2. 第 136-141 行：`normalizeToolCallId` 只在跨模型时调用。Anthropic 要求 ID 匹配 `^[a-zA-Z0-9_-]+$`（最多 64 字符），OpenAI 的 ID 含 `|` 且超长。如果不规范化会怎样？
 3. 第 163-180 行：`insertSyntheticToolResults` 给"孤儿" tool_use 补造假的 tool_result。什么情况下会出现有 tool_use 但没对应 tool_result的对话？（提示：想想中断和压缩）
 
-**第二处：[`packages/ai/src/providers/deepseek.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/providers/deepseek.ts)**
+**第二处：[`packages/ai/src/providers/openai-completions.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/providers/openai-completions.ts) 的 `detectCompat`**
 
-只有 15 行。回答：为什么 deepseek 不需要自己的 API 实现，复用 `openAICompletionsApi()` 就够了？（提示：看 baseUrl 和 api 字段）
+读 `detectCompat` 函数（第 1080 行起）。回答：为什么 deepseek 不需要自己的 API 实现，靠 `detectCompat` 里的 `isDeepSeek` 判断就够了？（提示：看第 1099 行的判断条件，以及第 1110-1113 行设置的两个兼容选项）
 
 **动手任务（改 mini-pi）**：给 `OpenAIProvider` 加一个 `mistral` 模式——Mistral 的 wire 格式也是 OpenAI 兼容的，但 `tool_calls` 的 `type` 字段省略了。你的 `toWire` 和 `fromWire` 需要改什么？提示：`type: "function"` 在 OpenAI 是必填的，Mistral 不报错但也不要求。
 
@@ -207,6 +210,8 @@ mini-pi 的 provider 比真 pi 简单很多，以及为什么省略是安全的�
 | 重试与错误分类 | `retryProviderRequest` 指数退避，按状态码分类重试 | 直接抛异常终止，把失败暴露给学习者 |
 | 多供应商运行时切换 | pi 按 model 配置路由到不同 provider | `CONFIG.provider` 启动时定一次，运行中不换 |
 | tool_choice / reasoning_effort | 每家供应商独有的采样参数 | 教学不需要精细控制采样 |
+| provider 抽象范式 | 真 pi 用 `StreamFunction` 类型 + `registerApiProvider` 注册机制 + 懒加载（lazy import），无 `LlmProvider` 接口 | 教学版用 `LlmProvider` 接口 + 两个类实现；真 pi 的 provider 不是类，是一组导出的 `StreamFunction` |
+| deepseek 独立文件 | 无 `providers/deepseek.ts`，deepseek 在 `openai-completions.ts` 的 `detectCompat` 中识别 | 教学版通过 `OPENAI_BASE_URL` 环境变量切换 baseUrl 的方向正确，但真 pi 的识别逻辑在 openai-completions 内部 |
 
 这张表是 mini-pi 与真 pi 的差距地图。读完 pi 的 `transform-messages.ts` 再回头看，你会看到每一项省略背后都有一道真 pi 在防的故障。
 

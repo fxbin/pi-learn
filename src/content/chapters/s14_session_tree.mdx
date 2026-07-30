@@ -224,8 +224,10 @@ mini-pi 的会话树比真 pi 简单很多，以及为什么省略是安全的�
 | 版本迁移 | v1→v2→v3 迁移链，自动重写文件 | 直接用 v3，不处理旧文件 |
 | uuidv7 | 时间有序 ID，便于按时间排序 | 用 randomUUID 前 8 位，纯随机但不影响树结构 |
 | fork 的 label 迁移 | fork 时重新生成 label entry | 不实现 label，跳过 |
-| `getPathToRootOrCompaction` | 代码中实际是 `getPathToRoot`，**不在 compaction 处停止** | compaction 只在 `buildContext` 阶段截断，不影响路径回溯 |
+| `getPathToRoot` | 真 pi 实际函数名（不在 compaction 处停止） | compaction 只在 `buildContext` 阶段截断，不影响路径回溯 |
 | 跨会话 tree 视图 | `getTree()` 含 label / labelTimestamp | 只展示 entry 树结构 |
+| compaction/branch 消息类型 | 真 pi 用 `createCompactionSummaryMessage` / `createBranchSummaryMessage` 构造专门的消息类型 | 教学版用 `{role:"user", content:"[历史摘要]..."}` 简化；真 pi 有专门的消息类型，学习者读源码会困惑类型不一致 |
+| branch 触发文件重写 | 真 pi `branch` 只改内存 leafId，无 I/O（LeafEntry 持久化是独立操作） | 教学版 `branch` 调用 `flush()` 重写整个文件；真 pi `appendEntry` 用 `fs.appendFile` 追加单行，性能 + 语义都不同 |
 
 这张表是 mini-pi 与真 pi 的差距地图。读完 pi 的 `session-manager.ts` 再回头看，你会看到每一项省略背后都有一道真 pi 在防的故障。
 

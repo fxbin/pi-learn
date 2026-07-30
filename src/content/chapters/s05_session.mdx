@@ -147,6 +147,9 @@ mini-pi 比真 pi 少做了什么，以及为什么省略是安全：
 | 滚动/轮转 | 大文件 compaction + 新 session 文件 | s06 专门讲 compaction；本章文件小到可以全量读 |
 | 并发写保护 | 文件锁 / 单 writer | REPL 单进程，不存在并发写 |
 | 写缓冲/批写 | 批量 append 减少 syscall | 每轮只写 1-2 条，即时落盘更重要 |
+| leafId 指针机制 | `JsonlSessionStorage.setLeafId` 追加 `type:"leaf"` entry 持久化指针，`moveTo` 改 leaf 不删消息 | 教学版 leafId 是内存字段，重启后回到文件末尾；s14 会展开 leaf entry 机制 |
+| resume 取路径 | `getPathToRoot(leafId)` 从 leaf 沿 parentId 回溯到根，只取路径上的 entry | 教学版全量回放所有消息；fork/分支场景下行为完全不同，s14 会展开 |
+| 持久化格式与 LLM 格式分离 | SessionTreeEntry（含 message/compaction/label 等多种类型）与 AgentMessage[] 不同，需 `buildSessionContext` 转换 | 教学版直接持久化 LLM 格式，文件里存的 = 模型看到的；真 pi 的转换在 s06/s14 显现 |
 
 这张表是本章的地图：每一行省略，都是后续章节或生产化时要补回来的洞。
 
