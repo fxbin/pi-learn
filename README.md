@@ -19,8 +19,8 @@
 | 章 | 标题 | 学习目标 | pi 源码锚点 |
 |---|---|---|---|
 | s01 | agent loop | while 循环 + tool_use 往返的最小骨架 | `packages/agent/src/agent-loop.ts` |
-| s02 | bash/read/write | 三个"无聊"工具与 dispatch 表 | `packages/agent/src/harness/tools/{bash,read,write}.ts` |
-| s03 | edit + 变更队列 | 字符串手术（模糊匹配/diff）与写盘串行化 | `packages/agent/src/harness/tools/{edit,edit-diff,file-mutation-queue}.ts` |
+| s02 | bash/read/write | 三个"无聊"工具与 dispatch 表 | `packages/coding-agent/src/core/tools/{bash,read,write}.ts` |
+| s03 | edit + 变更队列 | 字符串手术（模糊匹配/diff）与写盘串行化 | `packages/coding-agent/src/core/tools/{edit,edit-diff,file-mutation-queue}.ts` |
 | s04 | 中断与 steering | 循环运行中被 AbortSignal 打断、被注入消息改写 | `packages/agent/src/agent-loop.ts`、`packages/agent/src/types.ts` |
 | s05 | session/jsonl | append-only 持久化与 resume | `packages/agent/src/harness/session/` |
 | s06 | compaction | 上下文预算、溢出检测与摘要 | `packages/agent/src/harness/compaction/compaction.ts` |
@@ -63,7 +63,7 @@ npm run check
 
 ## pi 版本锚定
 
-本课程基于 pi `v0.75.5` 源码快照（2026-05-27，本仓库 `.reference/pi/`）。pi 主仓持续演进，若你阅读最新源码时发现行号或结构漂移，以机制为单位对照即可，章节锚点会按需修订。
+本课程基于 pi `v0.76.0` 源码快照（本仓库 `.reference/pi/`）。pi 主仓持续演进，若你阅读最新源码时发现行号或结构漂移，以机制为单位对照即可，章节锚点会按需修订。
 
 ## 目录结构
 
@@ -71,7 +71,7 @@ npm run check
 s01_agent_loop/ ... s08_provider/   八章主线，每章 README + code.ts + practice.ts
 appendix/                           TS 急救包 + 语言无关概念映射
 extras/                             番外：extensions / OAuth / TUI
-.reference/pi/                      pi v0.75.5 源码快照（章末对照用）
+.reference/pi/                      pi v0.76.0 源码快照（章末对照用）
 .reference/learn-claude-code/       课程范式参照
 ```
 

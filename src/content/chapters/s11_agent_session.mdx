@@ -170,11 +170,11 @@ node code.ts
 
 ## 源码锚点
 
-mini-pi 的 MiniAgentSession 是教学级简化。真 pi 的实现在 [`packages/coding-agent/src/core/agent-session.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/agent-session.ts)，先读三段，回答三个问题：
+mini-pi 的 MiniAgentSession 是教学级简化。真 pi 的实现在 [`packages/coding-agent/src/core/agent-session.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/agent-session.ts)，先读三段，回答三个问题：
 
-1. `_checkCompaction`（[L1767-1845](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/agent-session.ts#L1767)）的 `skipAbortedCheck` 参数：before-prompt 调用时传 `false`，after-prompt 调用时传 `true`。为什么 before-prompt 要检查 aborted 而 after-prompt 要跳过？（提示：after-prompt 的 assistant 消息如果是 aborted，是谁 abort 的？before-prompt 的上一条 aborted assistant 又是怎么来的？）
-2. `setModel`（[L1417-1432](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/agent-session.ts#L1417)）除了改 model 还调了 `sessionManager.appendModelChange` 和 `settingsManager.setDefaultModelAndProvider`。mini-pi 省了这两步会怎样？（提示：s05 的持久化和跨会话默认模型）
-3. `createAgentSession`（[sdk.ts L202-422](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/sdk.ts#L202)）是公共 SDK 入口。它做了 model 恢复、thinking level 恢复、tool 注册、extension runner 注入……mini-pi 的 `new MiniAgentSession(options)` 省了哪些？（提示：看 constructor 的 `config` 参数有多少字段）
+1. `_checkCompaction`（[L1767-1845](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/agent-session.ts#L1767)）的 `skipAbortedCheck` 参数：before-prompt 调用时传 `false`，after-prompt 调用时传 `true`。为什么 before-prompt 要检查 aborted 而 after-prompt 要跳过？（提示：after-prompt 的 assistant 消息如果是 aborted，是谁 abort 的？before-prompt 的上一条 aborted assistant 又是怎么来的？）
+2. `setModel`（[L1417-1432](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/agent-session.ts#L1417)）除了改 model 还调了 `sessionManager.appendModelChange` 和 `settingsManager.setDefaultModelAndProvider`。mini-pi 省了这两步会怎样？（提示：s05 的持久化和跨会话默认模型）
+3. `createAgentSession`（[sdk.ts L202-422](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/sdk.ts#L202)）是公共 SDK 入口。它做了 model 恢复、thinking level 恢复、tool 注册、extension runner 注入……mini-pi 的 `new MiniAgentSession(options)` 省了哪些？（提示：看 constructor 的 `config` 参数有多少字段）
 
 **动手任务（改 mini-pi）**：给 `_checkCompactionAfter` 的 overflow 路径加一个 `console.warn`——当 `_overflowRecovered` 已经是 true 且再次 overflow 时，打印"上下文溢出恢复失败，请手动压缩或切换更大窗口的模型"。想想：真 pi 在这个分支做了什么（提示：看 L1796-1807 的 `_emit`）？
 

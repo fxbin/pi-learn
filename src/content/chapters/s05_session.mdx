@@ -123,7 +123,7 @@ node s05_session/code.ts
 
 ## 源码锚点
 
-mini-pi 的两个函数，在真 pi 里对应一整套 session 子系统：[`packages/agent/src/harness/session/`](https://github.com/earendil-works/pi/tree/v0.75.5/packages/agent/src/harness/session/)。先读 [`jsonl-storage.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/harness/session/jsonl-storage.ts)，再回答三个问题：
+mini-pi 的两个函数，在真 pi 里对应一整套 session 子系统：[`packages/agent/src/harness/session/`](https://github.com/earendil-works/pi/tree/v0.76.0/packages/agent/src/harness/session/)。先读 [`jsonl-storage.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/harness/session/jsonl-storage.ts)，再回答三个问题：
 
 1. `jsonl-storage.ts` 第 226-241 行的 `create` 方法：pi 创建会话时先写一行 **header**（`type: "session"`），然后才写 entry。为什么需要 header？mini-pi 没有 header 会怎样？（提示：想想多会话和 fork）
 2. 第 278-287 行的 `appendEntry`：pi 的每条 entry 都有 `id`、`parentId`、`timestamp`，构成一棵树。mini-pi 的消息没有 ID，只有数组顺序。树结构比线性数组多了什么能力？（提示：看 `getPathToRootOrCompaction` 和 `fork`）

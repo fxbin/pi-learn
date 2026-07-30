@@ -160,7 +160,7 @@ const panoramaCode = [
           <strong>执行模式</strong>：<code>sequential</code>（串行，默认）/ <code>parallel</code>（可与其他并行工具并发）。<code>renderShell: "self"</code> 时工具自渲染外壳，<code>"default"</code> 走默认彩色框。
         </p>
         <p>
-          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/types.ts#L426-L488">types.ts:426-488</a> ToolDefinition · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/wrapper.ts#L17-L19">wrapper.ts:17-19</a> wrapRegisteredTool 桥接 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/hello.ts">hello.ts</a> 最小示例 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/subagent/index.ts">subagent/index.ts</a> 完整示例（renderCall/renderResult/并发控制/子进程）
+          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/types.ts#L426-L488">types.ts:426-488</a> ToolDefinition · <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/wrapper.ts#L17-L19">wrapper.ts:17-19</a> wrapRegisteredTool 桥接 · <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/hello.ts">hello.ts</a> 最小示例 · <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/subagent/index.ts">subagent/index.ts</a> 完整示例（renderCall/renderResult/并发控制/子进程）
         </p>
 
         <h2 id="command">Custom Command + 会话控制权</h2>
@@ -175,7 +175,7 @@ const panoramaCode = [
           <strong>ExtensionCommandContext 的会话控制权</strong>：只有 slash 命令 handler 拿到 <code>waitForIdle / newSession / fork / navigateTree / switchSession / reload</code>。事件 handler 拿到的是普通 ExtensionContext，不能切会话。这是权限分层——用户主动触发的命令才允许做高风险操作。
         </p>
         <p>
-          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/types.ts#L333-L364">types.ts:333-364</a> ExtensionCommandContext · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/runner.ts#L512-L546">runner.ts:512-546</a> resolveRegisteredCommands · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/commands.ts">commands.ts</a> + <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/tools.ts">tools.ts</a>
+          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/types.ts#L333-L364">types.ts:333-364</a> ExtensionCommandContext · <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/runner.ts#L512-L546">runner.ts:512-546</a> resolveRegisteredCommands · <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/commands.ts">commands.ts</a> + <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/tools.ts">tools.ts</a>
         </p>
 
         <h2 id="provider">Custom Provider + 延迟 flush</h2>
@@ -187,7 +187,7 @@ const panoramaCode = [
           <strong>延迟 flush 机制</strong>：加载阶段 ModelRegistry 还没绑定，registerProvider 入队 <code>pendingProviderRegistrations</code>。bindCore 后 flush——单个失败走 emitError 不中断。此后 registerProvider 立即生效，无需 /reload。
         </p>
         <p>
-          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/types.ts#L1240-L1348">types.ts:1240-1348</a> ProviderConfig · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/runner.ts#L301-L335">runner.ts:301-335</a> bindCore flush · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/custom-provider-anthropic/index.ts">custom-provider-anthropic</a> 完整示例（OAuth + streamSimple + 工具名映射）
+          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/types.ts#L1240-L1348">types.ts:1240-1348</a> ProviderConfig · <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/runner.ts#L301-L335">runner.ts:301-335</a> bindCore flush · <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/custom-provider-anthropic/index.ts">custom-provider-anthropic</a> 完整示例（OAuth + streamSimple + 工具名映射）
         </p>
 
         <h2 id="ui">UI 扩展能力面</h2>
@@ -234,7 +234,7 @@ const panoramaCode = [
           <strong>Flag 生命周期</strong>：registerFlag 时若有 default 且 flagValues 没有该 key，写入默认值。CLI 解析后 setFlagValue 覆盖。扩展通过 <code>pi.getFlag(name)</code> 读取——先校验扩展自己注册了该 flag，再从 runtime 读取。
         </p>
         <p>
-          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/runner.ts#L62-L80">runner.ts:62-80</a> 保留键清单 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/runner.ts#L417-L460">runner.ts:417-460</a> 冲突检测 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/plan-mode/index.ts">plan-mode</a> + <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/preset.ts">preset</a>
+          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/runner.ts#L62-L80">runner.ts:62-80</a> 保留键清单 · <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/runner.ts#L417-L460">runner.ts:417-460</a> 冲突检测 · <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/plan-mode/index.ts">plan-mode</a> + <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/preset.ts">preset</a>
         </p>
 
         <h2 id="compaction">Custom Compaction：事件驱动可替换行为</h2>
@@ -246,7 +246,7 @@ const panoramaCode = [
           返回 <code>{"{ compaction }"}</code> 替换默认压缩结果；返回 <code>{"{ cancel: true }"}</code> 取消压缩；返回 undefined 回退默认。失败时 return 即可，不用抛错。
         </p>
         <p>
-          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/types.ts#L536-L549">types.ts:536-549</a> 事件签名 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/custom-compaction.ts">custom-compaction.ts</a> 完整示例 · <a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/trigger-compact.ts">trigger-compact.ts</a> 主动触发
+          <strong>源码锚点</strong>：<a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/types.ts#L536-L549">types.ts:536-549</a> 事件签名 · <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/custom-compaction.ts">custom-compaction.ts</a> 完整示例 · <a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/trigger-compact.ts">trigger-compact.ts</a> 主动触发
         </p>
 
         <h2 id="mode">模式扩展两种思路</h2>
@@ -262,7 +262,7 @@ const panoramaCode = [
             <tr><td>实现复杂度</td><td>高（子进程管理、JSON 协议、并发控制）</td><td>中（事件组合）</td></tr>
             <tr><td>可观测性</td><td>子进程输出需自定义渲染</td><td>主循环输出，原生可观测</td></tr>
             <tr><td>适合场景</td><td>长任务委派、多 agent 协作</td><td>模式切换、安全约束</td></tr>
-            <tr><td>示例</td><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/subagent/index.ts">subagent/index.ts</a></td><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/plan-mode/index.ts">plan-mode/index.ts</a></td></tr>
+            <tr><td>示例</td><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/subagent/index.ts">subagent/index.ts</a></td><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/plan-mode/index.ts">plan-mode/index.ts</a></td></tr>
           </tbody>
         </table>
         <p>
@@ -275,18 +275,18 @@ const panoramaCode = [
             <tr><th>示例</th><th>演示能力</th><th>教学价值</th></tr>
           </thead>
           <tbody>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/hello.ts">hello.ts</a></td><td>registerTool + defineTool</td><td>最小可运行扩展</td></tr>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/tools.ts">tools.ts</a></td><td>registerCommand + setActiveTools + 持久化</td><td>有状态扩展范式</td></tr>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/commands.ts">commands.ts</a></td><td>registerCommand + autocomplete + getCommands</td><td>命令系统元命令</td></tr>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/custom-provider-anthropic/index.ts">custom-provider-anthropic</a></td><td>registerProvider + OAuth + streamSimple</td><td>provider 最完整示例</td></tr>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/doom-overlay/index.ts">doom-overlay</a></td><td>custom + overlay</td><td>UI 极限能力（35 FPS）</td></tr>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/snake.ts">snake.ts</a></td><td>custom + setInterval + 持久化</td><td>UI 游戏教学起点</td></tr>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/plan-mode/index.ts">plan-mode</a></td><td>flag + command + shortcut + 事件组合</td><td>模式扩展综合应用</td></tr>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/subagent/index.ts">subagent</a></td><td>registerTool + spawn + 并发控制</td><td>最完整工具示例</td></tr>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/custom-compaction.ts">custom-compaction.ts</a></td><td>session_before_compact</td><td>事件驱动可替换行为</td></tr>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/modal-editor.ts">modal-editor.ts</a></td><td>setEditorComponent + CustomEditor</td><td>Vim 风格编辑器</td></tr>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/tool-override.ts">tool-override.ts</a></td><td>同名 registerTool 覆盖内置</td><td>工具覆盖模式</td></tr>
-            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/examples/extensions/event-bus.ts">event-bus.ts</a></td><td>pi.events EventBus</td><td>扩展间通信</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/hello.ts">hello.ts</a></td><td>registerTool + defineTool</td><td>最小可运行扩展</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/tools.ts">tools.ts</a></td><td>registerCommand + setActiveTools + 持久化</td><td>有状态扩展范式</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/commands.ts">commands.ts</a></td><td>registerCommand + autocomplete + getCommands</td><td>命令系统元命令</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/custom-provider-anthropic/index.ts">custom-provider-anthropic</a></td><td>registerProvider + OAuth + streamSimple</td><td>provider 最完整示例</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/doom-overlay/index.ts">doom-overlay</a></td><td>custom + overlay</td><td>UI 极限能力（35 FPS）</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/snake.ts">snake.ts</a></td><td>custom + setInterval + 持久化</td><td>UI 游戏教学起点</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/plan-mode/index.ts">plan-mode</a></td><td>flag + command + shortcut + 事件组合</td><td>模式扩展综合应用</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/subagent/index.ts">subagent</a></td><td>registerTool + spawn + 并发控制</td><td>最完整工具示例</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/custom-compaction.ts">custom-compaction.ts</a></td><td>session_before_compact</td><td>事件驱动可替换行为</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/modal-editor.ts">modal-editor.ts</a></td><td>setEditorComponent + CustomEditor</td><td>Vim 风格编辑器</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/tool-override.ts">tool-override.ts</a></td><td>同名 registerTool 覆盖内置</td><td>工具覆盖模式</td></tr>
+            <tr><td><a href="https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/examples/extensions/event-bus.ts">event-bus.ts</a></td><td>pi.events EventBus</td><td>扩展间通信</td></tr>
           </tbody>
         </table>
 

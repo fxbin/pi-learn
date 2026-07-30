@@ -187,7 +187,7 @@ ctx              打印 LLM 上下文
 
 mini 版是教学级简化。真 pi 的会话分支树在两处，先读再回答问题：
 
-**第一处：[`packages/coding-agent/src/core/session-manager.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/session-manager.ts)**
+**第一处：[`packages/coding-agent/src/core/session-manager.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/session-manager.ts)**
 
 这是 pi 的 SessionManager（1466 行）。读 `getBranch`（约 1076 行）和 `branch`（约 1167 行），回答：
 
@@ -195,14 +195,14 @@ mini 版是教学级简化。真 pi 的会话分支树在两处，先读再回�
 2. `branch` 方法只有 3 行，不追加任何 entry。如果用户切换分支后直接退出程序，重启后 leafId 会回到哪里？（提示：看 `_buildIndex`，leafId = 文件最后一条 entry 的 id）
 3. `branchWithSummary` 追加的 `BranchSummaryEntry` 的 `parentId` 指向谁？为什么不是指向被放弃的分支末端？
 
-**第二处：[`packages/agent/src/harness/session/jsonl-storage.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/harness/session/jsonl-storage.ts)**
+**第二处：[`packages/agent/src/harness/session/jsonl-storage.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/harness/session/jsonl-storage.ts)**
 
 这是底层存储。读 `setLeafId`（约 226 行）和 `LeafEntry`，回答：
 
 4. 底层用 `LeafEntry` 持久化 leaf 指针，上层 SessionManager 不用。两种策略各自的代价是什么？（提示：重启后能否恢复 leaf 位置）
 5. `leafIdAfterEntry` 在加载时决定 leafId：遇到普通 entry 返回 `entry.id`，遇到 `LeafEntry` 返回 `entry.targetId`。为什么这个区分是必要的？
 
-**第三处：[`packages/coding-agent/src/core/agent-session.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/agent-session.ts) 的 `navigateTree`（约 2657 行）**
+**第三处：[`packages/coding-agent/src/core/agent-session.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/agent-session.ts) 的 `navigateTree`（约 2657 行）**
 
 这是 `/tree` 命令的入口。回答：
 

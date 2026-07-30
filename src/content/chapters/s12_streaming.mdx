@@ -151,7 +151,7 @@ node code.ts
 
 mini-pi 的 EventStream 是教学级简化。真 pi 的流式基础设施分布在两处，先读再回答问题：
 
-**第一处：[`packages/ai/src/utils/event-stream.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/ai/src/utils/event-stream.ts)**（88 行）
+**第一处：[`packages/ai/src/utils/event-stream.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/utils/event-stream.ts)**（88 行）
 
 | 关键行 | 内容 | 本章对应 |
 |---|---|---|
@@ -164,7 +164,7 @@ mini-pi 的 EventStream 是教学级简化。真 pi 的流式基础设施分布�
 
 读后回答：第 30-35 行 `push` 在 `isComplete` 命中后**没有 return**，仍然会走 deliver/queue——为什么？（提示：消费者需要看到 done 事件来收尾）
 
-**第二处：[`packages/ai/src/utils/json-parse.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/ai/src/utils/json-parse.ts)**（124 行）
+**第二处：[`packages/ai/src/utils/json-parse.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/utils/json-parse.ts)**（124 行）
 
 | 关键行 | 内容 | 本章对应 |
 |---|---|---|
@@ -176,7 +176,7 @@ mini-pi 的 EventStream 是教学级简化。真 pi 的流式基础设施分布�
 
 读后回答：真 pi 的 `parseStreamingJson` 层 3 用 `partial-json` 库的 `partialParse`，本章用 `closeAllOpen` 简化桩替代——`partial-json` 能处理哪些 `closeAllOpen` 处理不了的残缺？（提示：trailing comma、未闭合的 key、数组缺元素）
 
-**延伸阅读：[`packages/ai/src/utils/overflow.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/ai/src/utils/overflow.ts)**（158 行）
+**延伸阅读：[`packages/ai/src/utils/overflow.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/utils/overflow.ts)**（158 行）
 
 `isContextOverflow` 用 22 个正则模式（第 33-56 行的 `OVERFLOW_PATTERNS`）识别各家供应商的上下文溢出错误。本章不实现它，但流式基础设施要能正确传递这类错误事件——`EventStream` 的 `isComplete` 会把 `error` 事件也当完成事件，让 `result()` resolve 出错误对象，供上层判断是否需要压缩历史（接 s06 的 compaction）。这就是为什么 `AssistantMessageEventStream` 的 `isComplete` 同时认 `done` 和 `error`。
 

@@ -115,7 +115,7 @@ node code.ts
 
 ## 源码锚点
 
-mini-pi 的十几行循环，在真 pi 里对应 `runLoop`：[`packages/agent/src/agent-loop.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/agent-loop.ts) 第 155-275 行。先读一遍，再回答三个问题（答案就在代码里）：
+mini-pi 的十几行循环，在真 pi 里对应 `runLoop`：[`packages/agent/src/agent-loop.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/agent-loop.ts) 第 155-275 行。先读一遍，再回答三个问题（答案就在代码里）：
 
 1. 第 170 行和第 174 行各有一个 `while`，**两层循环各自为什么存在**？（提示：找 `followUpMessages` 和 `steeringMessages`）
 2. 第 211-214 行：当 `stopReason === "length"` 时，pi **一个工具调用都不执行**。为什么这是对的？（提示：token 截断意味着什么）

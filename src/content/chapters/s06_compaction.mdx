@@ -133,7 +133,7 @@ node code.ts
 
 ## 源码锚点
 
-mini-pi 的压缩是教学级简化。真 pi 的实现分布在 [`packages/agent/src/harness/compaction/`](https://github.com/earendil-works/pi/tree/v0.75.5/packages/agent/src/harness/compaction/)，先读 [`compaction.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/agent/src/harness/compaction/compaction.ts)，回答三个问题（答案就在代码里）：
+mini-pi 的压缩是教学级简化。真 pi 的实现分布在 [`packages/agent/src/harness/compaction/`](https://github.com/earendil-works/pi/tree/v0.76.0/packages/agent/src/harness/compaction/)，先读 [`compaction.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/harness/compaction/compaction.ts)，回答三个问题（答案就在代码里）：
 
 1. `estimateTokens`（第 287 行）对每种 role 分别数字符，而我们的 `flattenText` 把所有块一视同仁。pi 为什么要分 role？`bashExecution` 和 `compactionSummary` 这两种 pi 独有的 role，教学版为什么可以忽略？（提示：我们的消息类型只有 user/assistant 两种）
 2. `shouldCompact`（第 263 行）的判断是 `contextTokens > contextWindow - reserveTokens`，而我们是 `> maxContextTokens`。`reserveTokens` 这个"预留量"在防什么？（提示：摘要本身也要占 token，不预留会怎样）

@@ -201,13 +201,13 @@ mini-pi 的扩展系统是教学级简化。真 pi 的实现在以下三个文�
 
 | 文件 | 关键行号 | 看什么 |
 |---|---|---|
-| [`.../extensions/runner.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/runner.ts) | 680-712 | 通用 `emit`：try/catch 错误隔离 + session_before 事件的 cancel 短路 |
+| [`.../extensions/runner.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/runner.ts) | 680-712 | 通用 `emit`：try/catch 错误隔离 + session_before 事件的 cancel 短路 |
 | 同上 | 714-754 | `emitMessageEnd`：链式变换，`{ ...event, message: currentMessage }` 线程当前值，role 校验 |
 | 同上 | 466-479 | `invalidate` / `assertActive`：stale 保护，只记录第一条 staleMessage |
 | 同上 | 806-827 | `emitToolCall`：**没有 try/catch**（见下方讨论） |
-| [`.../extensions/loader.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/loader.ts) | 124-170 | `createExtensionRuntime`：十几个 action 方法全是 throwing stubs，等 bindCore 替换 |
+| [`.../extensions/loader.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/loader.ts) | 124-170 | `createExtensionRuntime`：十几个 action 方法全是 throwing stubs，等 bindCore 替换 |
 | 同上 | 331-343 | `loadExtensionModule`：jiti 运行时加载 TS，取 default 作为 factory |
-| [`.../extensions/types.ts`](https://github.com/earendil-works/pi/blob/v0.75.5/packages/coding-agent/src/core/extensions/types.ts) | 949-972 | `ExtensionEvent` 联合类型：26 个事件 |
+| [`.../extensions/types.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/types.ts) | 949-972 | `ExtensionEvent` 联合类型：26 个事件 |
 | 同上 | 1378-1379 | `ExtensionFactory` 类型签名（同步或异步） |
 
 **工程瑕疵讨论点**：真 pi 的 `emitToolCall`（runner.ts:806）**缺少 try/catch**。第 815 行 `await handler(event, ctx)` 直接执行，handler 抛错会一路冒泡出 `emitToolCall`，不像通用 `emit` 那样走 `emitError` 隔离。这意味着：一个 tool_call handler 抛错会让整条 tool_call 分发链崩掉，连后续扩展的 block 检查都跑不到。对比我们的 code.ts——`emit` 把 Observer 和 Interceptor 统一处理，try/catch 一视同仁。这是真实代码库里"复制粘贴忘了套壳"的典型痕迹，读源码时要带着批判眼光。
