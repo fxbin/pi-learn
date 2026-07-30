@@ -9,7 +9,8 @@ import "./AgentLoopDiagram.css";
  *   - LLM 与工具之间是双向通道：上行 tool_use（LLM→工具，橙色），下行 tool_result（工具→LLM，绿色）。
  *   - 两条箭头并列形成一个可视化的"循环回路"，比单向箭头+弧线更直观地表达 loop 语义。
  *   - LLM 节点带 ↻ 徽章，循环阶段旋转。
- *   - stop_reason !== "tool_use" 时跳出循环，沿 LLM 下方输出最终回答。
+ *   - 退出判断与真 pi 一致：看 content 里有没有 tool_use 块，不看 stop_reason。
+ *     stop_reason 只用于异常检测（"error"/"aborted"）。
  *
  * 序列：输入 → 两轮 tool_use/tool_result 循环 → 输出。
  * 两轮用于教学演示，实际循环次数由模型决定。
@@ -23,35 +24,20 @@ interface StepDef {
   label: string;
   loopIndex: number;
   message: string;
+  /** content 里 tool_use 块的数量；0 表示没有，循环退出 */
+  toolUseCount: number;
+  /** 模拟的 stop_reason 值，只用于异常检测展示 */
+  stopReason: string;
 }
 
 const FULL_SEQUENCE: StepDef[] = [
-  { phase: "input", label: "用户提问", loopIndex: 0, message: "写个 hello.ts" },
-  { phase: "tool_use", label: "LLM 调用 write 工具", loopIndex: 1, message: 'write("hello.ts", "console.log(1)")' },
-  { phase: "tool_result", label: "工具返回写入成功", loopIndex: 1, message: "ok: wrote 18 bytes" },
-  { phase: "tool_use", label: "LLM 调用 bash 工具", loopIndex: 2, message: 'bash("tsc hello.ts")' },
-  { phase: "tool_result", label: "工具返回编译结果", loopIndex: 2, message: "exit 0, no output" },
-  { phase: "output", label: "LLM 输出最终回答", loopIndex: 0, message: "已创建 hello.ts 并通过编译。" }
+  { phase: "input", label: "用户提问", loopIndex: 0, message: "写个 hello.ts", toolUseCount: 0, stopReason: "—" },
+  { phase: "tool_use", label: "LLM 输出 tool_use 块", loopIndex: 1, message: 'write("hello.ts", "console.log(1)")', toolUseCount: 1, stopReason: '"tool_use"' },
+  { phase: "tool_result", label: "工具返回写入成功", loopIndex: 1, message: "ok: wrote 18 bytes", toolUseCount: 1, stopReason: '"tool_use"' },
+  { phase: "tool_use", label: "LLM 输出 tool_use 块", loopIndex: 2, message: 'bash("tsc hello.ts")', toolUseCount: 1, stopReason: '"tool_use"' },
+  { phase: "tool_result", label: "工具返回编译结果", loopIndex: 2, message: "exit 0, no output", toolUseCount: 1, stopReason: '"tool_use"' },
+  { phase: "output", label: "LLM 输出最终回答", loopIndex: 0, message: "已创建 hello.ts 并通过编译。", toolUseCount: 0, stopReason: '"end_turn"' }
 ];
-
-const STOP_REASON_TOOL_USE = '"tool_use"';
-const STOP_REASON_END_TURN = '"end_turn"';
-const STOP_REASON_EMPTY = '"';
-
-/**
- * 根据当前阶段返回 stop_reason 模拟值。
- * @param phase 当前阶段
- * @returns stop_reason 字符串
- */
-function getStopReason(phase: Phase): string {
-  if (phase === "tool_use" || phase === "tool_result") {
-    return STOP_REASON_TOOL_USE;
-  }
-  if (phase === "output") {
-    return STOP_REASON_END_TURN;
-  }
-  return STOP_REASON_EMPTY;
-}
 
 export default function AgentLoopDiagram() {
   const [step, setStep] = useState(0);
@@ -75,6 +61,7 @@ export default function AgentLoopDiagram() {
   const llmActive = current.phase !== "input";
   const toolActive = toolUseActive || toolResultActive;
   const inLoop = current.phase === "tool_use" || current.phase === "tool_result";
+  const hasToolUse = current.toolUseCount > 0;
 
   return (
     <div className="ald-root diagram">
@@ -132,7 +119,7 @@ export default function AgentLoopDiagram() {
 
         <div className="ald-row ald-row-output">
           <div className={`ald-arrow ald-arrow-down ald-arrow-output ${llmOutputActive ? "active" : ""}`}>
-            <span className="ald-arrow-label">最终回答 · stop_reason=end_turn</span>
+            <span className="ald-arrow-label">最终回答 · content 无 tool_use 块</span>
           </div>
           <div className={`ald-node ald-node-output ${llmOutputActive ? "active" : ""}`}>
             <div className="ald-status" />
@@ -156,8 +143,18 @@ export default function AgentLoopDiagram() {
         {loopCount > 0 && (
           <div className="ald-loop-count">LOOP ×{loopCount}</div>
         )}
+        <div className="ald-condition">
+          <span className="ald-condition-key">content.tool_use.length</span>
+          <span className="ald-condition-op">=</span>
+          <span className={`ald-condition-val ${hasToolUse ? "continue" : "exit"}`}>
+            {current.toolUseCount}
+          </span>
+          <span className={`ald-condition-action ${hasToolUse ? "continue" : "exit"}`}>
+            {hasToolUse ? "→ 继续" : "→ 退出"}
+          </span>
+        </div>
         <div className="ald-stop-reason">
-          stop_reason: {getStopReason(current.phase)}
+          stop_reason: {current.stopReason}
         </div>
       </div>
     </div>

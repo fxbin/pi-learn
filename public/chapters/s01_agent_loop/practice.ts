@@ -105,9 +105,11 @@ function runBash(command: string): string {
  * agent 主循环：把工具结果持续喂回模型，直到模型不再调用工具。
  * 提示：while (true) 里四步——
  * 1. callLlm 拿响应；2. assistant 消息追加进 messages；
- * 3. stop_reason 不是 "tool_use" 就 return；
- * 4. 否则遍历 content 块执行 tool_use，收集 tool_result，
+ * 3. stop_reason 是 "error" 或 "aborted" 抛错；
+ *    content 里没有 tool_use 块就 return（正常退出）；
+ * 4. 否则遍历 tool_use 块执行，收集 tool_result，
  *    作为一条 user 消息追加，进入下一轮。
+ * 退出判断看 content 里的 tool_use 块数量，不是看 stop_reason。
  * @param messages 对话历史，循环过程中原地累积
  */
 async function agentLoop(messages: ChatMessage[]): Promise<void> {

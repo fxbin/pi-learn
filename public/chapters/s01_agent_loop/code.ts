@@ -4,7 +4,7 @@
  *
  * 整个 coding agent 的秘密，收敛为一个模式：
  *
- *     while (stop_reason === "tool_use") {
+ *     while (content 里有 tool_use 块) {
  *         response = LLM(messages, tools)
  *         执行工具
  *         结果回填
@@ -19,7 +19,9 @@
  *                          +---------------+
  *                         （循环继续）
  *
- * 模型决定停，循环才停。生产级 agent 在此之上叠加事件流、中断与生命周期控制，
+ * 模型决定停，循环才停。退出判断看 content 里有没有 tool_use 块，
+ * 不是看 stop_reason——后者是 provider 元数据，跨 provider 命名不一。
+ * 生产级 agent 在此之上叠加事件流、中断与生命周期控制，
  * 那些是 s04 及以后的事；本章只要这个最小骨架。
  *
  * 运行方式：
@@ -151,6 +153,15 @@ function runBash(command: string): string {
 
 /**
  * agent 主循环：把工具结果持续喂回模型，直到模型不再调用工具。
+ *
+ * 退出判断与真 pi 一致（agent-loop.ts 第 196、203 行）：
+ *   - 异常退出：stop_reason 是 "error" 或 "aborted" → 抛错
+ *   - 正常退出：content 里没有 tool_use 块 → return
+ *
+ * 不用 stop_reason === "tool_use" 判断循环继续，是因为 stop_reason 是 provider 元数据，
+ * 不同 provider 命名不一（Anthropic 是 "tool_use"，OpenAI 是 "tool_calls"）。
+ * content 里的 tool_use 块是 pi 自己 normalized 过的结构化数据，更稳健。
+ *
  * 每轮只做三件事：问模型、追加回答、按需执行工具并回填结果。
  * @param messages 对话历史，循环过程中原地累积
  */
@@ -158,14 +169,15 @@ async function agentLoop(messages: ChatMessage[]): Promise<void> {
 	while (true) {
 		const response = await callLlm(messages);
 		messages.push({ role: "assistant", content: response.content });
-		if (response.stop_reason !== "tool_use") {
+		if (response.stop_reason === "error" || response.stop_reason === "aborted") {
+			throw new Error(`LLM 异常终止: stop_reason=${response.stop_reason}`);
+		}
+		const toolCalls = response.content.filter((block) => block.type === "tool_use");
+		if (toolCalls.length === 0) {
 			return;
 		}
 		const results: ToolResultBlock[] = [];
-		for (const block of response.content) {
-			if (block.type !== "tool_use") {
-				continue;
-			}
+		for (const block of toolCalls) {
 			console.log(`\x1b[33m$ ${block.input.command}\x1b[0m`);
 			const output = runBash(block.input.command);
 			console.log(output.slice(0, 200));

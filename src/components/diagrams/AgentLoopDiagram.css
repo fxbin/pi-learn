@@ -355,6 +355,55 @@
   padding: 2px 8px;
 }
 
+/*
+ * 退出判断条件展示：content.tool_use.length 的值与动作。
+ * continue 用橙色（循环继续），exit 用绿色（正常退出）。
+ */
+.ald-condition {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 4px 10px;
+  border: 1px dashed var(--border);
+  margin-left: 8px;
+}
+
+.ald-condition-key {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.ald-condition-op {
+  color: var(--text-dim);
+}
+
+.ald-condition-val {
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.ald-condition-val.continue {
+  color: var(--orange);
+}
+
+.ald-condition-val.exit {
+  color: var(--green);
+}
+
+.ald-condition-action {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.ald-condition-action.continue {
+  color: var(--orange);
+}
+
+.ald-condition-action.exit {
+  color: var(--green);
+}
+
 .ald-stop-reason {
   font-size: 11px;
   color: var(--text-dim);

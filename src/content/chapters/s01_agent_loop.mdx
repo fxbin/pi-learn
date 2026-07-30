@@ -34,12 +34,15 @@ import AgentLoopDiagram from "../../components/diagrams/AgentLoopDiagram.tsx";
 
 ## 解决方案
 
-一个 `while` 循环：模型调用工具就继续，不调用就停。整个过程只有两个信号：
+一个 `while` 循环：content 里有 tool_use 块就继续，没有就停。退出判断看结构化的 content，不看 `stop_reason`——后者是 provider 元数据，跨 provider 命名不一（Anthropic 是 `"tool_use"`，OpenAI 是 `"tool_calls"`）。
 
 | 信号 | 含义 | 循环动作 |
 |---|---|---|
-| `stop_reason === "tool_use"` | 模型举手说"我要用工具" | 执行 → 结果喂回去 → 继续 |
-| 其他任何值 | 模型说"我做完了" | 退出循环 |
+| `content` 里有 `tool_use` 块 | 模型举手说"我要用工具" | 执行 → 结果喂回去 → 继续 |
+| `content` 里没有 `tool_use` 块 | 模型说"我做完了" | 正常退出循环 |
+| `stop_reason` 是 `"error"` 或 `"aborted"` | LLM 异常或被中断 | 抛错终止 |
+
+`stop_reason` 只用于异常检测，不用于判断循环继续——这是与真 pi 一致的设计。
 
 <AgentLoopDiagram client:load />
 
@@ -67,13 +70,17 @@ const response = await fetch(`${CONFIG.baseUrl}/v1/messages`, {
 
 **第 2 块：执行工具。** `spawnSync` 同步跑 shell，黑名单、超时、输出截断三道护栏。
 
-**第 3 块：主循环。** 全章核心，只有十几行：
+**第 3 块：主循环。** 全章核心，只有十几行。退出判断与真 pi 一致——看 content 里有没有 tool_use 块：
 
 ```typescript
 while (true) {
 	const response = await callLlm(messages);
 	messages.push({ role: "assistant", content: response.content });
-	if (response.stop_reason !== "tool_use") {
+	if (response.stop_reason === "error" || response.stop_reason === "aborted") {
+		throw new Error(`LLM 异常终止: stop_reason=${response.stop_reason}`);
+	}
+	const toolCalls = response.content.filter((block) => block.type === "tool_use");
+	if (toolCalls.length === 0) {
 		return;
 	}
 	// 执行每个 tool_use 块，收集 tool_result
@@ -105,8 +112,8 @@ node code.ts
 
 本章只引入五个新概念，后续的章都建立在它们之上：
 
-1. **tool_use**：模型不只输出文本，还能输出结构化的"我要调用工具"块（带 id、name、input）
-2. **stop_reason**：API 告诉你模型这一轮为什么停下；`tool_use` 是循环的油门
+1. **tool_use**：模型不只输出文本，还能输出结构化的"我要调用工具"块（带 id、name、input）。这是循环继续的唯一信号
+2. **stop_reason**：API 返回的元数据，告诉模型为什么停下。只用于异常检测（`"error"`/`"aborted"`），**不**用于判断循环继续——跨 provider 命名不一
 3. **消息数组即状态**：agent 的全部记忆是一个按序追加的数组，没有数据库、没有隐藏状态
 4. **tool_result 回填**：工具执行结果包装成 `user` 角色的消息发回，id 与 tool_use 一一对应
 5. **REPL**：readline 读输入 → 跑循环 → 打印回答，交互外壳与 agent 内核分离
@@ -138,7 +145,9 @@ mini-pi 比真 pi 少做了什么，以及为什么省略是安全的：
 | length 截断保护 | 截断时整批拒执行工具调用 | 单工具 + 8000 token 极少触发；锚点问题 2 已点名 |
 | 精细截断 | `utils/truncate.ts` 按行/字节策略截断 | 简单 `slice` 教学够用，s02 会碰到它的边界 |
 | 多工具 dispatch | `tools/index.ts` 注册表 | s02 讲；一个工具不需要分发 |
-| 错误分类恢复 | `stopReason: error/aborted` 分路径处理 | 本章直接抛异常终止，把失败暴露给学习者 |
+| 钩子退出 | `shouldStopAfterTurn` 钩子返回 true 时强制退出 | s10 讲；本章没有扩展系统，钩子无处挂 |
+
+**关于退出判断**：mini-pi 和真 pi 都用"`content` 里有没有 `tool_use` 块"判断循环继续，`stop_reason` 只用于异常检测（`"error"`/`"aborted"`）。不要用 `stop_reason === "tool_use"` 判断——那是 Anthropic 的命名，换到 OpenAI 就叫 `"tool_calls"`，写死会绑死 provider。
 
 这张表是本章的地图：后面七章，就是逐行划掉它。
 
