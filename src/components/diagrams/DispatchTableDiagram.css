@@ -35,6 +35,17 @@
   flex-wrap: wrap;
 }
 
+/*
+ * 箭头与它指向的内容绑定为一个 cell，防止 flex-wrap 换行时箭头与内容分离。
+ * 宽屏：cell 水平排列，箭头 → 指向右侧内容；
+ * 窄屏：cell 垂直排列，箭头旋转成 ↓ 指向下方内容。
+ */
+.dtd-arrow-cell {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
 .dtd-call {
   display: flex;
   flex-direction: column;
@@ -63,6 +74,8 @@
 .dtd-arrow {
   font-size: 20px;
   color: var(--text-dim);
+  flex-shrink: 0;
+  transition: transform 0.2s;
 }
 
 .dtd-table {
@@ -150,4 +163,22 @@
   font-size: 11px;
   color: var(--text-dim);
   text-align: center;
+}
+
+/*
+ * 窄屏响应式：stage 与 arrow-cell 改为垂直排列，
+ * 箭头旋转 90°（→ 变 ↓），方向始终与内容位置一致。
+ */
+@media (max-width: 768px) {
+  .dtd-stage {
+    flex-direction: column;
+  }
+
+  .dtd-arrow-cell {
+    flex-direction: column;
+  }
+
+  .dtd-arrow {
+    transform: rotate(90deg);
+  }
 }
