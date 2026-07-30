@@ -116,19 +116,26 @@ stop_reason: data.choices[0].finish_reason === "tool_calls" ? "tool_use" : "end_
 
 ## 运行
 
-**Anthropic 后端（默认）：**
+**Anthropic 后端（默认，也可用 DeepSeek 兼容端点）：**
 
 ```bash
+# Anthropic 原生：
 export ANTHROPIC_API_KEY=sk-ant-...
+# 或用 DeepSeek 的 Anthropic 兼容端点：
+# export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
+# export ANTHROPIC_API_KEY=sk-deepseek-...
+# export MODEL_ID=deepseek-chat
 node code.ts
 ```
 
 **OpenAI 后端：**
 
 ```bash
+# OpenAI 兼容后端（DeepSeek）：
 export PROVIDER=openai
-export OPENAI_API_KEY=sk-...
-export MODEL_ID=gpt-4o
+export OPENAI_BASE_URL=https://api.deepseek.com
+export OPENAI_API_KEY=sk-deepseek-...
+export MODEL_ID=deepseek-chat
 node code.ts
 ```
 

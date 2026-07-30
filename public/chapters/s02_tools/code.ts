@@ -7,7 +7,10 @@
  * 2. 硬编码 bash 调用换成 dispatch 表：工具名 → 处理函数
  * 循环本身不动，新增工具只改一张表。
  *
- * 运行：export ANTHROPIC_API_KEY=sk-ant-... && node code.ts
+ * 运行：export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic &&
+ *       export ANTHROPIC_API_KEY=sk-deepseek-... &&
+ *       export MODEL_ID=deepseek-chat &&
+ *       node code.ts
  * @author fxbin
  */
 

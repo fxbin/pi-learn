@@ -7,7 +7,10 @@
  * 2. file-mutation-queue：用 promise 链把写盘操作排成队列，串行执行
  * dispatch 表：工具名 → 处理函数，新增工具只改一张表，循环本身不动。
  *
- * 运行：export ANTHROPIC_API_KEY=sk-ant-... && node code.ts
+ * 运行：export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic &&
+ *       export ANTHROPIC_API_KEY=sk-deepseek-... &&
+ *       export MODEL_ID=deepseek-chat &&
+ *       node code.ts
  * @author fxbin
  */
 

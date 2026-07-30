@@ -9,7 +9,10 @@
  *     估算 token → 超阈值？─Yes→ 压缩(摘要旧消息) → [summary, ...recent]
  *                       └No→ 直接进 LLM
  *
- * 运行：export ANTHROPIC_API_KEY=sk-ant-... && node code.ts
+ * 运行：export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic &&
+ *       export ANTHROPIC_API_KEY=sk-deepseek-... &&
+ *       export MODEL_ID=deepseek-chat &&
+ *       node code.ts
  *
  * @author fxbin
  */

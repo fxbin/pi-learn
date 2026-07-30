@@ -8,7 +8,10 @@
  *     loadMessages  ←  readFileSync    ←  session.jsonl
  * 这是 Event Sourcing 的最小形态：state = replay(event_log)。
  * pi 的 session 更复杂（repo、多会话、树形 entry、fork），但内核一样。
- * 运行：export ANTHROPIC_API_KEY=sk-ant-... && node code.ts
+ * 运行：export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic &&
+ *       export ANTHROPIC_API_KEY=sk-deepseek-... &&
+ *       export MODEL_ID=deepseek-chat &&
+ *       node code.ts
  *
  * @author fxbin
  */

@@ -9,7 +9,10 @@
  *     扫描目录 → 读 .md → 解析(首行 # Name + body) → 追加到 SYSTEM_PROMPT
  *                        ↓ 读失败 / 解析失败 → diagnostic（不抛，继续下一个文件）
  *
- * 运行：export ANTHROPIC_API_KEY=sk-ant-... && node code.ts
+ * 运行：export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic &&
+ *       export ANTHROPIC_API_KEY=sk-deepseek-... &&
+ *       export MODEL_ID=deepseek-chat &&
+ *       node code.ts
  * @author fxbin
  */
 

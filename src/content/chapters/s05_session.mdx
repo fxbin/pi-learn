@@ -93,7 +93,9 @@ resume 时，`main` 调 `loadMessages` 拿到历史数组，直接喂给 `agentL
 ## 运行
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
+export ANTHROPIC_API_KEY=sk-deepseek-...
+export MODEL_ID=deepseek-chat
 node s05_session/code.ts
 ```
 

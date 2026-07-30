@@ -7,8 +7,12 @@
  * 内部 ChatMessage 形状不变，main() 按 CONFIG.provider 切换后端。
  *
  * 运行：
- *   PROVIDER=anthropic ANTHROPIC_API_KEY=sk-ant-... node code.ts
- *   PROVIDER=openai OPENAI_API_KEY=sk-... node code.ts
+ *   # Anthropic 后端（默认，也可用 DeepSeek 的 Anthropic 兼容端点）：
+ *   ANTHROPIC_API_KEY=sk-ant-... node code.ts
+ *   # 或用 DeepSeek：ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
+ *   #               ANTHROPIC_API_KEY=sk-deepseek-... MODEL_ID=deepseek-chat
+ *   # OpenAI 兼容后端（DeepSeek）：
+ *   PROVIDER=openai OPENAI_BASE_URL=https://api.deepseek.com OPENAI_API_KEY=sk-deepseek-... MODEL_ID=deepseek-chat node code.ts
  *
  * @author fxbin
  */

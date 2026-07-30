@@ -141,8 +141,9 @@ function buildSystemPrompt(skills: LoadedSkill[]): string {
 ## 运行
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-export MODEL_ID=claude-sonnet-4-5     # 可选，有默认值
+export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
+export ANTHROPIC_API_KEY=sk-deepseek-...
+export MODEL_ID=deepseek-chat     # 可选，有默认值
 node code.ts
 ```
 

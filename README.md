@@ -1,38 +1,46 @@
 # pi-learn
 
-从零构建一个 agent harness。每章亲手重建 [pi](https://github.com/earendil-works/pi) 的一个核心机制，章末回到 pi 真实源码做对照。
+学习 [pi](https://github.com/earendil-works/pi)（原 Claude Code）源码的笔记记录。每篇对应一个核心机制，先读懂，再手写一遍，最后对照 pi 真实源码看差距。
 
-学完你将得到：一个能对真实仓库干活的 mini-pi，以及阅读、修改任意 coding agent 内部实现的能力。
+> 在线版：https://fxbin.github.io/pi-learn/
 
-## 怎么学
+## 怎么读
 
-每章固定三步：
+每篇固定三步：
 
-1. **读**：叙事 README，搞清楚为什么需要这个机制
-2. **写**：亲手敲出本章的 `code.ts`（不是复制粘贴，是写），跑起来看到效果
-3. **对照**：回到 pi 真实源码，看你的玩具和量产软件差在哪
+1. **读**：网页上的叙事正文，搞清楚这个机制解决什么问题
+2. **写**：亲手敲出 `code.ts`（不是复制粘贴），跑起来看到效果
+3. **对照**：回到 pi 真实源码，看你的实现和量产软件差在哪
 
-章末有默写验收：合上书，用 `practice.ts` 空白模板重写本章代码。写不出来说明这一章没学会，回头再写一遍。
+篇末有默写验收：用 `practice.ts` 空白模板重写。写不出说明这篇没吃透，回头再来。
 
-## 章节大纲
+## 笔记目录
 
-| 章 | 标题 | 学习目标 | pi 源码锚点 |
+14 篇核心机制 + 番外，每篇对应 pi 的一个模块。
+
+| 篇 | 标题 | 核心内容 | pi 源码锚点 |
 |---|---|---|---|
-| s01 | agent loop | while 循环 + tool_use 往返的最小骨架 | `packages/agent/src/agent-loop.ts` |
-| s02 | bash/read/write | 三个"无聊"工具与 dispatch 表 | `packages/coding-agent/src/core/tools/{bash,read,write}.ts` |
-| s03 | edit + 变更队列 | 字符串手术（模糊匹配/diff）与写盘串行化 | `packages/coding-agent/src/core/tools/{edit,edit-diff,file-mutation-queue}.ts` |
-| s04 | 中断与 steering | 循环运行中被 AbortSignal 打断、被注入消息改写 | `packages/agent/src/agent-loop.ts`、`packages/agent/src/types.ts` |
-| s05 | session/jsonl | append-only 持久化与 resume | `packages/agent/src/harness/session/` |
-| s06 | compaction | 上下文预算、溢出检测与摘要 | `packages/agent/src/harness/compaction/compaction.ts` |
-| s07 | skills | 文件即提示注入，坏文件返回 diagnostics 而非抛异常 | `packages/agent/src/harness/skills.ts` |
-| s08 | provider 抽象 | 一个接口 + anthropic/openai 两实现 + 消息边界转换 | `packages/ai/src/providers/`、`packages/ai/src/api/transform-messages.ts` |
-| 番外 | extensions/OAuth/TUI | 给真 pi 写一个扩展，agent 改自己 | `.pi/extensions/` |
+| s01 | Agent Loop | while 循环 + tool_use 往返的最小骨架 | `packages/agent/src/agent-loop.ts` |
+| s02 | Tools | bash/read/write 三个工具与 dispatch 表 | `packages/coding-agent/src/core/tools/{bash,read,write}.ts` |
+| s03 | Edit Queue | 字符串手术（模糊匹配/diff）与写盘串行化 | `packages/coding-agent/src/core/tools/{edit,edit-diff,file-mutation-queue}.ts` |
+| s04 | Interrupt | 循环运行中被 AbortSignal 打断、被注入消息改写 | `packages/agent/src/agent-loop.ts`、`packages/agent/src/types.ts` |
+| s05 | Session | append-only jsonl 持久化与 resume | `packages/agent/src/harness/session/` |
+| s06 | Compaction | 上下文预算、溢出检测与摘要 | `packages/agent/src/harness/compaction/compaction.ts` |
+| s07 | Skills | 文件即提示注入，坏文件返回 diagnostics 而非抛异常 | `packages/agent/src/harness/skills.ts` |
+| s08 | Provider | 两套供应商数据模型平等独立，pi 抽象 AgentMessage 中间层 | `packages/ai/src/providers/`、`packages/ai/src/api/transform-messages.ts` |
+| s09 | TUI 渲染 | 终端渲染、输入处理与流式输出 | `packages/coding-agent/src/core/tui/` |
+| s10 | Extensions | 动态加载 + 生命周期钩子（Observer/Interceptor/Transformer） | `packages/coding-agent/src/core/extensions/` |
+| s11 | AgentSession | prompt 入口、phase 状态机、双队列 drain、overflow 恢复 | `packages/coding-agent/src/core/agent-session.ts` |
+| s12 | Streaming | SSE 流式协议、in-place partial 更新、事件流分类 | `packages/agent/src/agent-loop.ts`、`packages/ai/src/utils/event-stream.ts` |
+| s13 | Stateful Agent | 跨会话状态保持、消息历史回放 | `packages/coding-agent/src/core/agent-session.ts` |
+| s14 | 会话分支树 | id/parentId DAG、leafId 指针、branch/fork/compaction 三态 | `packages/coding-agent/src/core/session/branch-tree.ts` |
+| 番外 | Extensions 实战 | 给真 pi 写一个扩展，agent 改自己 | `.pi/extensions/` |
 
-s08 附 deepseek 选读小节：演示在 openai 兼容格式上加第三个 provider 的增量成本。
+每篇正文里有动态图示（流式动画、事件流、循环可视化）帮助理解执行过程。总览页 `/overview` 用一张动态大图把整个 agent 执行流程串起来。
 
 ## 工程约束
 
-课程代码使用 TypeScript，规则只有三条：
+示例代码使用 TypeScript，规则只有三条：
 
 | 规则 | 执行方式 |
 |---|---|
@@ -42,20 +50,48 @@ s08 附 deepseek 选读小节：演示在 openai 兼容格式上加第三个 pro
 
 这三条与 pi 官方开发规则一致（见 pi 仓库 `AGENTS.md`：Use only erasable TypeScript syntax）。Java/Python 背景的读者先花 10 分钟读 [TS 急救包](appendix/ts-survival-kit.md)，再看[语言无关概念映射](appendix/concept-map.md)。
 
+笔记网站本身是 Astro 5 静态站点（正文用 MDX，动态图用 React Islands），与示例代码的"零构建"约束无关——网站是阅读载体，示例代码是要你亲手敲的部分。
+
 ## 快速开始
+
+### 跑示例代码
+
+示例默认使用 DeepSeek（通过 Anthropic 兼容端点，s01-s07 代码逻辑无需改动）：
 
 ```bash
 node --version   # 确认 >= 22.18
 
-export ANTHROPIC_API_KEY=sk-ant-...
-export MODEL_ID=claude-sonnet-4-5
-# 可选：指向兼容端点
-# export ANTHROPIC_BASE_URL=https://your-proxy.example.com
+# DeepSeek（推荐，国内可直连）
+export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
+export ANTHROPIC_API_KEY=sk-deepseek-...
+export MODEL_ID=deepseek-chat
 
-node s01_agent_loop/code.ts
+node public/chapters/s01_agent_loop/code.ts
 ```
 
-类型检查（可选，需要一次 `npm install`）：
+也可换回 Anthropic Claude：
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+export MODEL_ID=claude-sonnet-4-5
+
+node public/chapters/s01_agent_loop/code.ts
+```
+
+DeepSeek 的 Anthropic 兼容端点完整支持 `x-api-key` 认证、`tool_use`/`tool_result`/`input_schema`，s01-s07 的 callLlm 代码零修改。s08 Provider 演示如何用 OpenAI 兼容端点接入第三方供应商。
+
+每篇目录 `public/chapters/sXX_<name>/` 下有 `code.ts`（完整参考实现）和 `practice.ts`（空白默写模板）。
+
+### 本地启动笔记网站
+
+```bash
+npm install
+npm run dev      # http://localhost:4321/pi-learn
+npm run build    # 构建到 dist/
+npm run preview  # 预览构建产物
+```
+
+类型检查（可选）：
 
 ```bash
 npm run check
@@ -63,15 +99,29 @@ npm run check
 
 ## pi 版本锚定
 
-本课程基于 pi `v0.76.0` 源码快照（本仓库 `.reference/pi/`）。pi 主仓持续演进，若你阅读最新源码时发现行号或结构漂移，以机制为单位对照即可，章节锚点会按需修订。
+本笔记基于 pi `v0.76.0` 源码快照（本仓库 `.reference/pi/`）。pi 主仓持续演进，若你阅读最新源码时发现行号或结构漂移，以机制为单位对照即可，篇目锚点会按需修订。
 
 ## 目录结构
 
 ```
-s01_agent_loop/ ... s08_provider/   八章主线，每章 README + code.ts + practice.ts
-appendix/                           TS 急救包 + 语言无关概念映射
-extras/                             番外：extensions / OAuth / TUI
-.reference/pi/                      pi v0.76.0 源码快照（章末对照用）
+src/
+  content/chapters/        14 篇 MDX 正文（s01-s14）
+  pages/                   路由：首页 / overview 总览 / chapters/[slug] / extras
+  components/
+    diagrams/              各篇动态图组件（React + CSS 变量，暗/亮主题）
+    CodeDrawer.tsx         源码抽屉（侧边栏打开 + 轻量语法高亮）
+    ChapterNav.astro       导航
+    ThemeToggle.tsx        暗/亮主题切换
+  layouts/Layout.astro     全站布局
+  styles/global.css        CSS 变量主题
+public/chapters/           每篇示例代码 code.ts + practice.ts
+appendix/                  TS 急救包 + 语言无关概念映射
+.reference/pi/             pi v0.76.0 源码快照（对照用）
+.github/workflows/deploy.yml   GitHub Pages 自动部署
 ```
+
+## 部署
+
+推送到 main 分支即自动部署到 GitHub Pages：https://fxbin.github.io/pi-learn/
 
 作者：fxbin

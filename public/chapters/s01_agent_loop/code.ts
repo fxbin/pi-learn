@@ -25,7 +25,9 @@
  * 那些是 s04 及以后的事；本章只要这个最小骨架。
  *
  * 运行方式：
- *   export ANTHROPIC_API_KEY=sk-ant-...
+ *   export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
+ *   export ANTHROPIC_API_KEY=sk-deepseek-...
+ *   export MODEL_ID=deepseek-chat
  *   node code.ts
  *
  * @author fxbin

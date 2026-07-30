@@ -14,7 +14,10 @@
  * compaction 两触发：overflow 删错误消息+retry / threshold 不删不retry
  * setModel 三步：改 _model + 重置 _overflowRecovered + emit（不重建 Agent）
  *
- * 运行：export ANTHROPIC_API_KEY=sk-ant-... && node code.ts
+ * 运行：export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic &&
+ *       export ANTHROPIC_API_KEY=sk-deepseek-... &&
+ *       export MODEL_ID=deepseek-chat &&
+ *       node code.ts
  *
  * @author fxbin
  */

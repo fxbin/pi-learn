@@ -9,7 +9,10 @@
  * abort 靠 Web 标准 AbortSignal（传进 fetch 的 RequestInit，abort 时抛 AbortError），
  * 循环里再查 signal.aborted 做兜底。steering 靠回调 getSteeringMessages：
  * 每轮开始前调一次，返回的消息作为 user 消息注入。另加 maxTurns 熔断策略。
- * 运行：export ANTHROPIC_API_KEY=sk-ant-... && node code.ts（运行中按 Ctrl+C 中断）
+ * 运行：export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic &&
+ *       export ANTHROPIC_API_KEY=sk-deepseek-... &&
+ *       export MODEL_ID=deepseek-chat &&
+ *       node code.ts（运行中按 Ctrl+C 中断）
  * @author fxbin
  */
 
