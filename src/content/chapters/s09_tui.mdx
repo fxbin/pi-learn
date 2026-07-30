@@ -146,7 +146,7 @@ node code.ts
 
 ## 源码锚点
 
-mini TUI 的两百行引擎，在真 pi 里对应 [`packages/tui/src/tui.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/tui/src/tui.ts)。先读一遍对应行号，再回答三个问题（答案就在代码里）：
+mini TUI 的两百行引擎，在pi 里对应 [`packages/tui/src/tui.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/tui/src/tui.ts)。先读一遍对应行号，再回答三个问题（答案就在代码里）：
 
 | 关键概念 | 行号 | 说明 |
 |---|---|---|
@@ -159,15 +159,15 @@ mini TUI 的两百行引擎，在真 pi 里对应 [`packages/tui/src/tui.ts`](ht
 2. 第 1022 行首帧判断 `previousLines.length === 0 && !widthChanged && !heightChanged`：为什么首帧要排除宽高变化？首次渲染时屏幕本来就是干净的，清不清屏有什么区别？（提示：清屏会 `\x1b[2J\x1b[H` 把光标移到左上角，但首帧前光标位置不确定）
 3. 第 1174 行 `renderEnd = Math.min(lastChanged, newLines.length - 1)`：为什么 `lastChanged` 可能大于 `newLines.length - 1`？这种情况下多余的旧行怎么清除？（提示：行数缩短时越界行扫描为 `""`，`lastChanged` 会指向旧长度）
 
-**动手任务（改 mini TUI）**：真 pi 的 `scheduleRender` 在 `doRender` 结束后检查 `renderRequested`，如果渲染期间又有新请求就继续调度。mini TUI 没有这个循环。给 `scheduleRender` 的 `setTimeout` 回调末尾加一句：`if (this.renderRequested) this.scheduleRender()`。验证：连续快速按 ↑ 五次，观察是否合并成一帧而不是五帧。
+**动手任务（改 mini TUI）**：pi 的 `scheduleRender` 在 `doRender` 结束后检查 `renderRequested`，如果渲染期间又有新请求就继续调度。mini TUI 没有这个循环。给 `scheduleRender` 的 `setTimeout` 回调末尾加一句：`if (this.renderRequested) this.scheduleRender()`。验证：连续快速按 ↑ 五次，观察是否合并成一帧而不是五帧。
 
 ---
 
 ## 妥协清单
 
-mini TUI 比真 pi 少做了什么，以及为什么省略是安全的：
+mini TUI 比pi 少做了什么，以及为什么省略是安全的：
 
-| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+| 省略项 | pi 的做法 | 为什么本章可以省 |
 |---|---|---|
 | Kitty 图像协议 | `_G` 序列 + image id 管理 + `deleteKittyImages` | 教学场景无图像，差分逻辑不受影响 |
 | Overlay 叠层 | `overlayStack` + `compositeOverlays` 合成 | 单层组件树，无需模态层合成 |
@@ -177,10 +177,10 @@ mini TUI 比真 pi 少做了什么，以及为什么省略是安全的：
 | Termux 兼容 | `isTermuxSession` 跳过高度变化重画 | 桌面终端，软件键盘场景不存在 |
 | height 变化处理 | `heightChanged` 分支单独清屏 | 只追踪 width，resize 演示够用 |
 | 清屏收缩 | `clearOnShrink` 配置清除多余行 | 行数固定，不会收缩 |
-| scheduleRender 自循环 | 真 pi `scheduleRender` 回调末尾检查 `renderRequested`，有新请求则继续调度（tui.ts 第 538-540 行） | 教学版回调末尾不检查，连续高频刷新会丢帧；单帧场景不受影响 |
-| requestRender(force) | 真 pi 支持 `force` 参数强制清屏重画（置 `previousWidth=-1`），用于主题切换等场景 | 教学版无 force 参数，无法强制重画；主题切换等场景需要 |
+| scheduleRender 自循环 | pi `scheduleRender` 回调末尾检查 `renderRequested`，有新请求则继续调度（tui.ts 第 538-540 行） | 教学版回调末尾不检查，连续高频刷新会丢帧；单帧场景不受影响 |
+| requestRender(force) | pi 支持 `force` 参数强制清屏重画（置 `previousWidth=-1`），用于主题切换等场景 | 教学版无 force 参数，无法强制重画；主题切换等场景需要 |
 
-这张表是 mini TUI 与真 pi 的差距地图：真 pi 在这套差分骨架上叠了图像、叠层、IME、滚动、移动端兼容，但核心差分逻辑就是本章这三块。
+这张表是 mini TUI 与pi 的差距地图：pi 在这套差分骨架上叠了图像、叠层、IME、滚动、移动端兼容，但核心差分逻辑就是本章这三块。
 
 ---
 

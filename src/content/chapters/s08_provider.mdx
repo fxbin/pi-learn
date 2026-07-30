@@ -179,7 +179,7 @@ pi 的 `providers/` 目录下有几十家供应商，大多数（deepseek、groq
 
 ## 源码锚点
 
-mini-pi 的两个 provider 是教学级简化。真 pi 的供应商抽象分布在两处，先读再回答问题：
+mini-pi 的两个 provider 是教学级简化。pi 的供应商抽象分布在两处，先读再回答问题：
 
 **第一处：[`packages/ai/src/api/transform-messages.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/api/transform-messages.ts)**
 
@@ -199,9 +199,9 @@ mini-pi 的两个 provider 是教学级简化。真 pi 的供应商抽象分布�
 
 ## 妥协清单
 
-mini-pi 的 provider 比真 pi 简单很多，以及为什么省略是安全的：
+mini-pi 的 provider 比pi 简单很多，以及为什么省略是安全的：
 
-| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+| 省略项 | pi 的做法 | 为什么本章可以省 |
 |---|---|---|
 | 流式输出 | `StreamFunction` 逐 token 推送，每个供应商一套 stream 解析 | 非流式一次性返回，语义相同，只少了打字机效果 |
 | 内部模型独立设计 | pi 有自己的 `Message` 类型（toolCall/toolResult 独立 role），不偏向任何供应商 | 我们选 Anthropic 形状当内部模型，省掉一层翻译 |
@@ -210,10 +210,10 @@ mini-pi 的 provider 比真 pi 简单很多，以及为什么省略是安全的�
 | 重试与错误分类 | `retryProviderRequest` 指数退避，按状态码分类重试 | 直接抛异常终止，把失败暴露给学习者 |
 | 多供应商运行时切换 | pi 按 model 配置路由到不同 provider | `CONFIG.provider` 启动时定一次，运行中不换 |
 | tool_choice / reasoning_effort | 每家供应商独有的采样参数 | 教学不需要精细控制采样 |
-| provider 抽象范式 | 真 pi 用 `StreamFunction` 类型 + `registerApiProvider` 注册机制 + 懒加载（lazy import），无 `LlmProvider` 接口 | 教学版用 `LlmProvider` 接口 + 两个类实现；真 pi 的 provider 不是类，是一组导出的 `StreamFunction` |
-| deepseek 独立文件 | 无 `providers/deepseek.ts`，deepseek 在 `openai-completions.ts` 的 `detectCompat` 中识别 | 教学版通过 `OPENAI_BASE_URL` 环境变量切换 baseUrl 的方向正确，但真 pi 的识别逻辑在 openai-completions 内部 |
+| provider 抽象范式 | pi 用 `StreamFunction` 类型 + `registerApiProvider` 注册机制 + 懒加载（lazy import），无 `LlmProvider` 接口 | 教学版用 `LlmProvider` 接口 + 两个类实现；pi 的 provider 不是类，是一组导出的 `StreamFunction` |
+| deepseek 独立文件 | 无 `providers/deepseek.ts`，deepseek 在 `openai-completions.ts` 的 `detectCompat` 中识别 | 教学版通过 `OPENAI_BASE_URL` 环境变量切换 baseUrl 的方向正确，但pi 的识别逻辑在 openai-completions 内部 |
 
-这张表是 mini-pi 与真 pi 的差距地图。读完 pi 的 `transform-messages.ts` 再回头看，你会看到每一项省略背后都有一道真 pi 在防的故障。
+这张表是 mini-pi 与pi 的差距地图。读完 pi 的 `transform-messages.ts` 再回头看，你会看到每一项省略背后都有一道pi 在防的故障。
 
 ---
 
@@ -232,6 +232,6 @@ mini-pi 的 provider 比真 pi 简单很多，以及为什么省略是安全的�
 
 ---
 
-**八章走完，你已经有了一个完整的 mini-pi：** 循环（s01）、工具（s02）、编辑（s03）、中断（s04）、会话（s05）、压缩（s06）、技能（s07）、供应商（s08）。每一章只加一个概念，每一个概念都映射到真 pi 的一段源码。接下来是番外——把 mini-pi 往真 pi 方向再推一步。
+**八章走完，你已经有了一个完整的 mini-pi：** 循环（s01）、工具（s02）、编辑（s03）、中断（s04）、会话（s05）、压缩（s06）、技能（s07）、供应商（s08）。每一章只加一个概念，每一个概念都映射到pi 的一段源码。接下来是番外——把 mini-pi 往pi 方向再推一步。
 
 下一章：[番外 extensions](/pi-learn/extras/)

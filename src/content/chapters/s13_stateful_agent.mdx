@@ -153,7 +153,7 @@ node code.ts
 
 ## 源码锚点
 
-mini-pi 的 MiniAgent，在真 pi 里是 [`packages/agent/src/agent.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/agent.ts) 的 `Agent` 类。配套双层循环在 [`packages/agent/src/agent-loop.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/agent-loop.ts)。读完回答三个问题：
+mini-pi 的 MiniAgent，在pi 里是 [`packages/agent/src/agent.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/agent.ts) 的 `Agent` 类。配套双层循环在 [`packages/agent/src/agent-loop.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/agent-loop.ts)。读完回答三个问题：
 
 | 锚点 | 行号 | 看什么 |
 |---|---|---|
@@ -176,9 +176,9 @@ mini-pi 的 MiniAgent，在真 pi 里是 [`packages/agent/src/agent.ts`](https:/
 
 ## 妥协清单
 
-mini-pi 比真 pi 少做了什么，以及为什么省略是安全：
+mini-pi 比pi 少做了什么，以及为什么省略是安全：
 
-| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+| 省略项 | pi 的做法 | 为什么本章可以省 |
 |---|---|---|
 | `continue()` 外部入口 | 从最后一条消息续跑，区分 user/toolResult/assistant 三种角色 | 本章 REPL 一次提问走完一个 run，没有"从中间续跑"的场景 |
 | `prepareNextTurn` 钩子 | 每轮后可换 model / 改 context | 本章 mock 不切模型，s11 已演示过模型切换 |
@@ -189,8 +189,8 @@ mini-pi 比真 pi 少做了什么，以及为什么省略是安全：
 | 真实 SSE 流式 | streamFn 逐 token 推送，event 有 message_update | 本章用 setTimeout 一次性返回，演示时序足够 |
 | `MutableAgentState` 拷贝语义 | tools/messages 的 getter/setter 都 `.slice()` | 本章 messages 直接暴露，调用方不外部改动即可 |
 | 多事件类型 | turn_start/message_start/message_update/message_end/turn_end/agent_end/tool_execution_* | 本章只 emit 5 种事件，足以演示串行派发 |
-| steering drain 位置 | 真 pi 在循环开始前（agent-loop.ts 第 167 行）调一次 + 每轮末尾（第 253 行）调一次 | 教学版在内层 while 开头 + 末尾各 drain 一次；真 pi 的"启动前 drain"处理用户在 agent 启动到首次调 LLM 之间敲的字 |
-| processEvents 状态机 | 真 pi `processEvents` 有 switch 语句更新内部 state（streamingMessage / pendingToolCalls / errorMessage） | 教学版 `processEvents` 只派发事件，不更新 state；listener 拿不到 streamingMessage 等运行时状态 |
+| steering drain 位置 | pi 在循环开始前（agent-loop.ts 第 167 行）调一次 + 每轮末尾（第 253 行）调一次 | 教学版在内层 while 开头 + 末尾各 drain 一次；pi 的"启动前 drain"处理用户在 agent 启动到首次调 LLM 之间敲的字 |
+| processEvents 状态机 | pi `processEvents` 有 switch 语句更新内部 state（streamingMessage / pendingToolCalls / errorMessage） | 教学版 `processEvents` 只派发事件，不更新 state；listener 拿不到 streamingMessage 等运行时状态 |
 
 这张表往后会逐行划掉：s14 之后会补上 `convertToLlm`，s15 会补上真实 SSE 流式。
 

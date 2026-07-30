@@ -9,7 +9,7 @@ import "./AgentLoopDiagram.css";
  *   - LLM 与工具之间是双向通道：上行 tool_use（LLM→工具，橙色），下行 tool_result（工具→LLM，绿色）。
  *   - 两条箭头并列形成一个可视化的"循环回路"，比单向箭头+弧线更直观地表达 loop 语义。
  *   - LLM 节点带 ↻ 徽章，循环阶段旋转。
- *   - 退出判断与真 pi 一致：看 content 里有没有 tool_use 块，不看 stop_reason。
+ *   - 退出判断与pi 一致：看 content 里有没有 tool_use 块，不看 stop_reason。
  *     stop_reason 只用于异常检测（"error"/"aborted"）。
  *
  * 序列：输入 → 两轮 tool_use/tool_result 循环 → 输出。

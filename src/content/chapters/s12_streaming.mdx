@@ -119,7 +119,7 @@ catch {
 }
 ```
 
-层 3 的 `closeAllOpen` 是 `partial-json` 库的简化桩——扫描括号栈和字符串开闭，结尾补上缺的 `"` `}` `]`。真 pi 用 `partial-json` 库做更聪明的残缺补全（处理 trailing comma、未闭合 key 等），本章只做最小桩。层 4 的 `{}` 兜底是"绝不抛异常"的承诺——上层 agent 循环拿到 `{}` 就当"工具参数还没攒够"，等下一个 chunk 再试。
+层 3 的 `closeAllOpen` 是 `partial-json` 库的简化桩——扫描括号栈和字符串开闭，结尾补上缺的 `"` `}` `]`。pi 用 `partial-json` 库做更聪明的残缺补全（处理 trailing comma、未闭合 key 等），本章只做最小桩。层 4 的 `{}` 兜底是"绝不抛异常"的承诺——上层 agent 循环拿到 `{}` 就当"工具参数还没攒够"，等下一个 chunk 再试。
 
 demo 里三个 token 演示了这条瀑布：`{"a":1`（残缺→层 3 补全）、`,"b":"x\x01"`（控制字符→层 2 修复）、`,"c":"a\z"}`（非法转义→层 2 修复），每步都能解析出对象，不会因为半个 chunk 崩掉。
 
@@ -149,7 +149,7 @@ node code.ts
 
 ## 源码锚点
 
-mini-pi 的 EventStream 是教学级简化。真 pi 的流式基础设施分布在两处，先读再回答问题：
+mini-pi 的 EventStream 是教学级简化。pi 的流式基础设施分布在两处，先读再回答问题：
 
 **第一处：[`packages/ai/src/utils/event-stream.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/utils/event-stream.ts)**（88 行）
 
@@ -174,7 +174,7 @@ mini-pi 的 EventStream 是教学级简化。真 pi 的流式基础设施分布�
 | 第 85-95 行 | `parseJsonWithRepair`：parse 失败则修复再试 | 层 1+2 |
 | 第 104-124 行 | `parseStreamingJson`：`parseJsonWithRepair` → `partialParse` → `partialParse(repairJson)` → `{}` | 四层降级（层 3 用 `partial-json` 库） |
 
-读后回答：真 pi 的 `parseStreamingJson` 层 3 用 `partial-json` 库的 `partialParse`，本章用 `closeAllOpen` 简化桩替代——`partial-json` 能处理哪些 `closeAllOpen` 处理不了的残缺？（提示：trailing comma、未闭合的 key、数组缺元素）
+读后回答：pi 的 `parseStreamingJson` 层 3 用 `partial-json` 库的 `partialParse`，本章用 `closeAllOpen` 简化桩替代——`partial-json` 能处理哪些 `closeAllOpen` 处理不了的残缺？（提示：trailing comma、未闭合的 key、数组缺元素）
 
 **延伸阅读：[`packages/ai/src/utils/overflow.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/utils/overflow.ts)**（158 行）
 
@@ -184,21 +184,21 @@ mini-pi 的 EventStream 是教学级简化。真 pi 的流式基础设施分布�
 
 ## 妥协清单
 
-mini-pi 的流式基础设施比真 pi 简单很多，以及为什么省略是安全的：
+mini-pi 的流式基础设施比pi 简单很多，以及为什么省略是安全的：
 
-| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+| 省略项 | pi 的做法 | 为什么本章可以省 |
 |---|---|---|
 | `partial-json` 库 | 层 3 用 `partialParse` 智能补全残缺 JSON（处理 trailing comma、未闭合 key 等） | `closeAllOpen` 简化桩够演示降级思路，残缺时返回 `{}` 语义安全 |
 | `overflow.ts` | 22 个正则识别上下文溢出，触发 s06 的压缩 | 本章只做流式管道，错误处理留给上层；`error` 事件走 `isComplete` 路径已在源码锚点说明 |
 | `AssistantMessageEventStream` 特化类 | 固定 `isComplete=(e)=>e.type==="done"\|\|"error"`，`extractResult` 按 type 取 `message`/`error` | 用泛型 `MiniEventStream<T,R>` + 两个回调等效表达，少一层继承 |
-| 背压 | 真 pi 的事件流有上限保护，生产者过快会阻塞 | 教学场景事件量小，无背压版本更易理解 push/await 握手 |
-| 多消费者 | 真 pi 允许多个 `for await` 并发消费同一流 | 单消费者已能讲清双输出，多消费者只是 `waiting` 数组多几项 |
-| SSE 解析 | 真 pi 按行解析 `data: ...\n\n` 帧、处理 `event:` 类型 | demo 直接 push 字符串 token，跳过 SSE 帧解析这层无关细节 |
-| `end(result)` 带参 | 真 pi 的 `end` 可显式传入最终结果（非 complete 事件触发的结束） | demo 用 complete 事件触发 resolve，`end()` 只做唤醒，简化签名 |
-| parseStreamingJson 层级 | 真 pi 层 1 是 `parseJsonWithRepair`（内部 try JSON.parse 失败 → repairJson），层 2 是 `partialParse`，层 3 是 `partialParse(repairJson)` | 教学版层 1 是 `JSON.parse`，层 2 是 `repairJson + JSON.parse`，把真 pi 的层 1 拆成了两层；读真 pi 源码时会困惑层 1 怎么是 `parseJsonWithRepair` |
-| NON_OVERFLOW_PATTERNS | 真 pi 有 3 个排除正则（overflow.ts 第 67-71 行），排除 rate limit / throttling 等非 overflow 错误 | 教学版无排除逻辑，可能误判限流为溢出 |
+| 背压 | pi 的事件流有上限保护，生产者过快会阻塞 | 教学场景事件量小，无背压版本更易理解 push/await 握手 |
+| 多消费者 | pi 允许多个 `for await` 并发消费同一流 | 单消费者已能讲清双输出，多消费者只是 `waiting` 数组多几项 |
+| SSE 解析 | pi 按行解析 `data: ...\n\n` 帧、处理 `event:` 类型 | demo 直接 push 字符串 token，跳过 SSE 帧解析这层无关细节 |
+| `end(result)` 带参 | pi 的 `end` 可显式传入最终结果（非 complete 事件触发的结束） | demo 用 complete 事件触发 resolve，`end()` 只做唤醒，简化签名 |
+| parseStreamingJson 层级 | pi 层 1 是 `parseJsonWithRepair`（内部 try JSON.parse 失败 → repairJson），层 2 是 `partialParse`，层 3 是 `partialParse(repairJson)` | 教学版层 1 是 `JSON.parse`，层 2 是 `repairJson + JSON.parse`，把pi 的层 1 拆成了两层；读pi 源码时会困惑层 1 怎么是 `parseJsonWithRepair` |
+| NON_OVERFLOW_PATTERNS | pi 有 3 个排除正则（overflow.ts 第 67-71 行），排除 rate limit / throttling 等非 overflow 错误 | 教学版无排除逻辑，可能误判限流为溢出 |
 
-这张表是 mini-pi 与真 pi 的差距地图。读完 pi 的 `event-stream.ts` 和 `json-parse.ts` 再回头看，你会看到每一项省略背后都有一道真 pi 在防的故障——尤其是 `partial-json` 那层，真 pi 能解析出半个对象的已有字段，本章只能返回 `{}`。
+这张表是 mini-pi 与pi 的差距地图。读完 pi 的 `event-stream.ts` 和 `json-parse.ts` 再回头看，你会看到每一项省略背后都有一道pi 在防的故障——尤其是 `partial-json` 那层，pi 能解析出半个对象的已有字段，本章只能返回 `{}`。
 
 ---
 
@@ -217,4 +217,4 @@ mini-pi 的流式基础设施比真 pi 简单很多，以及为什么省略是�
 
 ---
 
-**十二章走完，mini-pi 的流式管道接通了。** 从 s08 的一次性返回，到 s12 的逐 token 流式，agent harness 离真 pi 又近了一步。EventStream 的双输出让"打字机渲染"和"工具执行"两条路径各取所需，repairJson 让 LLM 的脏输出不再炸掉解析器。下一章见。
+**十二章走完，mini-pi 的流式管道接通了。** 从 s08 的一次性返回，到 s12 的逐 token 流式，agent harness 离pi 又近了一步。EventStream 的双输出让"打字机渲染"和"工具执行"两条路径各取所需，repairJson 让 LLM 的脏输出不再炸掉解析器。下一章见。

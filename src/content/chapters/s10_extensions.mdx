@@ -38,7 +38,7 @@ s07 的 skills 是"静态 `.md` 注入"：启动时扫一遍目录，把文件�
 
 每个扩展是一个 TS 模块，`default export` 一个工厂函数 `(api) => { api.on(event, handler) }`。加载器调用 `await factory(api)`，工厂函数用 `api.on` 把 handler 注册到事件上。核心循环在固定接缝（session 开始、工具调用前、消息结束后…）调用 `runner.emit(event)`，所有注册了该事件的 handler 依次执行。
 
-真 pi 有 26 个事件。教学版归纳成**三类钩子模式**（每种模式 emit 策略不同）：
+pi 有 26 个事件。教学版归纳成**三类钩子模式**（每种模式 emit 策略不同）：
 
 ```
 Observer（只观察）       session_start / session_shutdown   → emit，无返回值，不短路
@@ -70,7 +70,7 @@ Transformer（链式 reduce） context / message_end               → emitTrans
 type ExtensionFactory = (api: ExtensionAPI) => void | Promise<void>;
 ```
 
-支持同步或异步初始化（`Promise<void>`）。事件按三类分接口：Observer 事件（`SessionStartEvent` 等）无返回值；Interceptor 事件（`ToolCallEvent`）配 `ToolCallEventResult { block?, reason? }`；Transformer 事件（`ContextEvent`/`MessageEndEvent`）返回变换后的值。真 pi 的 26 个事件是 `ExtensionEvent` 联合类型（见 types.ts:949），教学版精简到 6 个。
+支持同步或异步初始化（`Promise<void>`）。事件按三类分接口：Observer 事件（`SessionStartEvent` 等）无返回值；Interceptor 事件（`ToolCallEvent`）配 `ToolCallEventResult { block?, reason? }`；Transformer 事件（`ContextEvent`/`MessageEndEvent`）返回变换后的值。pi 的 26 个事件是 `ExtensionEvent` 联合类型（见 types.ts:949），教学版精简到 6 个。
 
 **第 2 块：Runtime + 加载器。** `createExtensionRuntime` 是关键工程决策——action 方法是 **throwing stubs**：
 
@@ -81,7 +81,7 @@ function createExtensionRuntime(): ExtensionRuntime {
 }
 ```
 
-加载阶段（`await factory(api)` 执行时）扩展可能误调用 `sendMessage` 等动作方法，但此时 runner 还没 `bindCore`，真实实现不存在。throwing stubs 让这种误调用**立即抛错**而非静默失败。真 pi 的 `createExtensionRuntime`（loader.ts:124）把十几个 action 方法全设成 `notInitialized`，等 `runner.bindCore()` 逐个替换成真实实现。
+加载阶段（`await factory(api)` 执行时）扩展可能误调用 `sendMessage` 等动作方法，但此时 runner 还没 `bindCore`，真实实现不存在。throwing stubs 让这种误调用**立即抛错**而非静默失败。pi 的 `createExtensionRuntime`（loader.ts:124）把十几个 action 方法全设成 `notInitialized`，等 `runner.bindCore()` 逐个替换成真实实现。
 
 `loadExtension` 的核心只有一行 `await factory(api)`：
 
@@ -94,7 +94,7 @@ async function loadExtension(factory, name, runtime): Promise<Extension> {
 }
 ```
 
-真 pi 用 jiti 运行时加载 TS 文件（`await jiti.import(path)`，loader.ts:331），取 `default` 导出作为 factory；教学版直接传入 factory 函数，但 `await factory(api)` 这一步完全一致——工厂函数在此执行所有 `api.on` 注册。
+pi 用 jiti 运行时加载 TS 文件（`await jiti.import(path)`，loader.ts:331），取 `default` 导出作为 factory；教学版直接传入 factory 函数，但 `await factory(api)` 这一步完全一致——工厂函数在此执行所有 `api.on` 注册。
 
 **第 3 块：ExtensionRunner。** 三个 emit 方法对应三类钩子。通用 `emit` 处理 Observer + Interceptor：
 
@@ -141,7 +141,7 @@ async emitTransform<T>(event, initial: T): Promise<T> {
 }
 ```
 
-两个关键点：`structuredClone(initial)` 深拷贝保护原数据（真 pi 的 `emitMessageEnd` 用 `{ ...event, message: currentMessage }` 线程）；`{ ...event, ...current }` 把**当前累积值**喂给下一个 handler，前一个的输出变成后一个的输入——这就是 reduce。
+两个关键点：`structuredClone(initial)` 深拷贝保护原数据（pi 的 `emitMessageEnd` 用 `{ ...event, message: currentMessage }` 线程）；`{ ...event, ...current }` 把**当前累积值**喂给下一个 handler，前一个的输出变成后一个的输入——这就是 reduce。
 
 `assertActive` 是 stale 保护：`invalidate()` 后 `staleMessage` 被设置，任何 emit 一进来就 `if (this.staleMessage) throw`。
 
@@ -197,7 +197,7 @@ s10 演示结束。
 
 ## 源码锚点
 
-mini-pi 的扩展系统是教学级简化。真 pi 的实现在以下三个文件，先读 runner.ts：
+mini-pi 的扩展系统是教学级简化。pi 的实现在以下三个文件，先读 runner.ts：
 
 | 文件 | 关键行号 | 看什么 |
 |---|---|---|
@@ -210,7 +210,7 @@ mini-pi 的扩展系统是教学级简化。真 pi 的实现在以下三个文�
 | [`.../extensions/types.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/types.ts) | 949-972 | `ExtensionEvent` 联合类型：26 个事件 |
 | 同上 | 1378-1379 | `ExtensionFactory` 类型签名（同步或异步） |
 
-**工程瑕疵讨论点**：真 pi 的 `emitToolCall`（runner.ts:806）**缺少 try/catch**。第 815 行 `await handler(event, ctx)` 直接执行，handler 抛错会一路冒泡出 `emitToolCall`，不像通用 `emit` 那样走 `emitError` 隔离。这意味着：一个 tool_call handler 抛错会让整条 tool_call 分发链崩掉，连后续扩展的 block 检查都跑不到。对比我们的 code.ts——`emit` 把 Observer 和 Interceptor 统一处理，try/catch 一视同仁。这是真实代码库里"复制粘贴忘了套壳"的典型痕迹，读源码时要带着批判眼光。
+**工程瑕疵讨论点**：pi 的 `emitToolCall`（runner.ts:806）**缺少 try/catch**。第 815 行 `await handler(event, ctx)` 直接执行，handler 抛错会一路冒泡出 `emitToolCall`，不像通用 `emit` 那样走 `emitError` 隔离。这意味着：一个 tool_call handler 抛错会让整条 tool_call 分发链崩掉，连后续扩展的 block 检查都跑不到。对比我们的 code.ts——`emit` 把 Observer 和 Interceptor 统一处理，try/catch 一视同仁。这是真实代码库里"复制粘贴忘了套壳"的典型痕迹，读源码时要带着批判眼光。
 
 回答三个问题（答案在代码里）：
 
@@ -224,9 +224,9 @@ mini-pi 的扩展系统是教学级简化。真 pi 的实现在以下三个文�
 
 ## 妥协清单
 
-mini-pi 的扩展系统比真 pi 简单很多，以及为什么省略是安全：
+mini-pi 的扩展系统比pi 简单很多，以及为什么省略是安全：
 
-| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+| 省略项 | pi 的做法 | 为什么本章可以省 |
 |---|---|---|
 | jiti 运行时加载 | `loadExtensionModule` 用 jiti 支持运行时 TS（禁用 moduleCache） | 教学版直接传入 factory 函数，`await factory(api)` 这一步一致，省掉 jiti 配置噪音 |
 | 26 个事件 | `ExtensionEvent` 联合类型 26 个，含 resources_discover/model_select/user_bash 等 | 归纳成 6 个事件 + 3 类模式足够演示钩子编排；多出的只是更多接缝 |
@@ -237,10 +237,10 @@ mini-pi 的扩展系统比真 pi 简单很多，以及为什么省略是安全�
 | Provider 注册队列 | `pendingProviderRegistrations` 在加载期排队，bindCore 后 flush | 没有 provider 系统（s08 已讲），注册无处 flush |
 | messageRenderers | 自定义消息类型渲染器 | 没有 TUI（s09），渲染无界面 |
 | 错误类型码 | ExtensionError 带 extensionPath/event/error/stack 结构化字段 | 字符串消息够用；errorListeners 只打印，不做程序化分类 |
-| emitHook 错误处理 | 真 pi `AgentHarness.emitHook`（agent-harness.ts 第 244 行）错误**冒泡**（`throw normalizeHookError`），不是隔离 | 教学版的 `emit` 统一 try/catch 隔离，比真 pi 更严谨；真 pi 的 context/tool_call/tool_result hook 抛错会终止整个 turn。这是教学版的"反向改进"，s11 会再次提到 |
-| emitToolCall try/catch | 真 pi `emitToolCall`（runner.ts 第 815 行）无 try/catch，handler 抛错冒泡 | 教学版 `emit` 统一有 try/catch 隔离，比真 pi 更严谨；这是真 pi 的工程瑕疵，教学版修正了 |
+| emitHook 错误处理 | pi `AgentHarness.emitHook`（agent-harness.ts 第 244 行）错误**冒泡**（`throw normalizeHookError`），不是隔离 | 教学版的 `emit` 统一 try/catch 隔离，比pi 更严谨；pi 的 context/tool_call/tool_result hook 抛错会终止整个 turn。这是教学版的"反向改进"，s11 会再次提到 |
+| emitToolCall try/catch | pi `emitToolCall`（runner.ts 第 815 行）无 try/catch，handler 抛错冒泡 | 教学版 `emit` 统一有 try/catch 隔离，比pi 更严谨；这是pi 的工程瑕疵，教学版修正了 |
 
-这张表每一行都是真 pi 多花的工程量。读完 `runner.ts` 的 `emit` / `emitMessageEnd` / `emitToolCall` 三个方法再回头看，你会更清楚 try/catch 该包在哪一层、漏包一层会发生什么。
+这张表每一行都是pi 多花的工程量。读完 `runner.ts` 的 `emit` / `emitMessageEnd` / `emitToolCall` 三个方法再回头看，你会更清楚 try/catch 该包在哪一层、漏包一层会发生什么。
 
 ---
 

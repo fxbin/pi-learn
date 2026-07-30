@@ -209,11 +209,11 @@ s07: Skills（加载 2 个 skill）
 
 ## 源码锚点
 
-mini-pi 的 skills 是教学级简化。真 pi 的实现在 [`packages/agent/src/harness/skills.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/harness/skills.ts)，先读这个文件，回答三个问题（答案就在代码里）：
+mini-pi 的 skills 是教学级简化。pi 的实现在 [`packages/agent/src/harness/skills.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/harness/skills.ts)，先读这个文件，回答三个问题（答案就在代码里）：
 
 1. `loadSkills`（第 49 行）遇到目录不存在时走 `continue` 而非 `push diagnostic`——和我们的"statSync 抛就返回空"一样吗？为什么 pi 把 `not_found` 单独处理，其他错误才进 diagnostic？（提示：`error.code !== "not_found"` 这个判断在防什么噪音）
 2. `loadSkillFromFile`（第 233 行）解析 frontmatter 后，如果 `description` 为空就返回 `skill: null`——我们的 `parseSkill` 不检查 description。pi 为什么必须要有 description？（提示：看 `formatSkillsForSystemPrompt` 怎么生成 system prompt，description 在哪里用）
-3. 真 pi 用 `SKILL.md`（固定文件名）+ 子目录结构，我们用 `*.md`（任意文件名）+ 平铺目录。pi 的方式多了什么能力？（提示：一个 skill 可以带附属文件，比如 `code-review/SKILL.md` + `code-review/rubric.json`）
+3. pi 用 `SKILL.md`（固定文件名）+ 子目录结构，我们用 `*.md`（任意文件名）+ 平铺目录。pi 的方式多了什么能力？（提示：一个 skill 可以带附属文件，比如 `code-review/SKILL.md` + `code-review/rubric.json`）
 
 再对照 [`packages/agent/src/harness/system-prompt.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/harness/system-prompt.ts) 的 `formatSkillsForSystemPrompt`：它只把 `name` + `description` + `location` 放进 system prompt，**不放 content**。我们直接把 content 全塞进去。这是两种不同的策略——pi 是"目录在 prompt，正文按需加载"，我们是"全塞进去"。各自代价是什么？
 
@@ -223,9 +223,9 @@ mini-pi 的 skills 是教学级简化。真 pi 的实现在 [`packages/agent/src
 
 ## 妥协清单
 
-mini-pi 的 skills 比真 pi 简单很多，以及为什么省略是安全：
+mini-pi 的 skills 比pi 简单很多，以及为什么省略是安全：
 
-| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+| 省略项 | pi 的做法 | 为什么本章可以省 |
 |---|---|---|
 | YAML frontmatter | `parseFrontmatter` 解析 `name`/`description`/`disable-model-invocation` | 教学版首行 `# Name` 足够；没有按需加载，description 无处用 |
 | 按需加载 | system prompt 只放 catalog，模型调 `load_skill` 工具取正文 | 全部一次性注入更简单；token 费但教学场景 skill 少 |
@@ -234,10 +234,10 @@ mini-pi 的 skills 比真 pi 简单很多，以及为什么省略是安全：
 | name 校验 | `validateName` 检查小写、连字符、长度、必须等于父目录名（`validateName` 第 283 行 `if (name !== parentDirName)`） | 教学版不暴露 skill 给外部 API，名字只用于显示 |
 | diagnostic 类型码 | `SkillDiagnosticCode` 枚举 `read_failed`/`parse_failed`/... | 字符串消息够用；类型码是为程序化处理，我们只打印 |
 | 递归错误隔离 | `Result<T, E>` 类型包装每个 IO 操作 | try/catch + diagnostic 字符串更易读，教学版优先可读性 |
-| SKILL.md 优先级 | 目录下优先找 SKILL.md，找到就只加载它，跳过其他 .md | 教学版对所有 .md 文件都加载，无优先级；真 pi 的 SKILL.md 是"入口文件"语义 |
-| description 空丢弃 | `loadSkillFromFile` 第 265-267 行，description 为空返回 `skill:null` 丢弃 | 教学版不要求 description；真 pi 会丢弃无描述的 skill（但仍记录 diagnostic） |
+| SKILL.md 优先级 | 目录下优先找 SKILL.md，找到就只加载它，跳过其他 .md | 教学版对所有 .md 文件都加载，无优先级；pi 的 SKILL.md 是"入口文件"语义 |
+| description 空丢弃 | `loadSkillFromFile` 第 265-267 行，description 为空返回 `skill:null` 丢弃 | 教学版不要求 description；pi 会丢弃无描述的 skill（但仍记录 diagnostic） |
 
-这张表的每一行都是真 pi 多花的工程量。读完 `skills.ts` 再回头看，你会更清楚每一项在防什么故障。
+这张表的每一行都是pi 多花的工程量。读完 `skills.ts` 再回头看，你会更清楚每一项在防什么故障。
 
 ---
 

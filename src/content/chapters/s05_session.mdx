@@ -123,7 +123,7 @@ node s05_session/code.ts
 
 ## 源码锚点
 
-mini-pi 的两个函数，在真 pi 里对应一整套 session 子系统：[`packages/agent/src/harness/session/`](https://github.com/earendil-works/pi/tree/v0.76.0/packages/agent/src/harness/session/)。先读 [`jsonl-storage.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/harness/session/jsonl-storage.ts)，再回答三个问题：
+mini-pi 的两个函数，在pi 里对应一整套 session 子系统：[`packages/agent/src/harness/session/`](https://github.com/earendil-works/pi/tree/v0.76.0/packages/agent/src/harness/session/)。先读 [`jsonl-storage.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/harness/session/jsonl-storage.ts)，再回答三个问题：
 
 1. `jsonl-storage.ts` 第 226-241 行的 `create` 方法：pi 创建会话时先写一行 **header**（`type: "session"`），然后才写 entry。为什么需要 header？mini-pi 没有 header 会怎样？（提示：想想多会话和 fork）
 2. 第 278-287 行的 `appendEntry`：pi 的每条 entry 都有 `id`、`parentId`、`timestamp`，构成一棵树。mini-pi 的消息没有 ID，只有数组顺序。树结构比线性数组多了什么能力？（提示：看 `getPathToRootOrCompaction` 和 `fork`）
@@ -135,9 +135,9 @@ mini-pi 的两个函数，在真 pi 里对应一整套 session 子系统：[`pac
 
 ## 妥协清单
 
-mini-pi 比真 pi 少做了什么，以及为什么省略是安全：
+mini-pi 比pi 少做了什么，以及为什么省略是安全：
 
-| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+| 省略项 | pi 的做法 | 为什么本章可以省 |
 |---|---|---|
 | 原子写保证 | `fsync` + tmp 文件 + rename | `appendFileSync` 单次小写入在 POSIX 上近乎原子；教学场景崩溃可接受丢最后一条 |
 | 会话 header | 首行写 `type:"session"` 元数据（id/cwd/timestamp） | 单文件单会话，路径本身就是标识，不需要 header |
@@ -149,7 +149,7 @@ mini-pi 比真 pi 少做了什么，以及为什么省略是安全：
 | 写缓冲/批写 | 批量 append 减少 syscall | 每轮只写 1-2 条，即时落盘更重要 |
 | leafId 指针机制 | `JsonlSessionStorage.setLeafId` 追加 `type:"leaf"` entry 持久化指针，`moveTo` 改 leaf 不删消息 | 教学版 leafId 是内存字段，重启后回到文件末尾；s14 会展开 leaf entry 机制 |
 | resume 取路径 | `getPathToRoot(leafId)` 从 leaf 沿 parentId 回溯到根，只取路径上的 entry | 教学版全量回放所有消息；fork/分支场景下行为完全不同，s14 会展开 |
-| 持久化格式与 LLM 格式分离 | SessionTreeEntry（含 message/compaction/label 等多种类型）与 AgentMessage[] 不同，需 `buildSessionContext` 转换 | 教学版直接持久化 LLM 格式，文件里存的 = 模型看到的；真 pi 的转换在 s06/s14 显现 |
+| 持久化格式与 LLM 格式分离 | SessionTreeEntry（含 message/compaction/label 等多种类型）与 AgentMessage[] 不同，需 `buildSessionContext` 转换 | 教学版直接持久化 LLM 格式，文件里存的 = 模型看到的；pi 的转换在 s06/s14 显现 |
 
 这张表是本章的地图：每一行省略，都是后续章节或生产化时要补回来的洞。
 

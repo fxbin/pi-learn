@@ -62,7 +62,7 @@ function safePath(raw: string): string {
 }
 ```
 
-`resolve` 把相对路径补成绝对路径，`relative` 算出它相对 cwd 的偏移。一旦开头是 `..` 就意味着要跳出 cwd，拒绝。教学版不处理符号链接——真 pi 用 `realpath` 归一化后再比对。
+`resolve` 把相对路径补成绝对路径，`relative` 算出它相对 cwd 的偏移。一旦开头是 `..` 就意味着要跳出 cwd，拒绝。教学版不处理符号链接——pi 用 `realpath` 归一化后再比对。
 
 **第 2 块：三个工具。** 三个函数签名一致：`(input: Record<string, unknown>) => string`，便于塞进同一张表——
 
@@ -131,7 +131,7 @@ node code.ts
 
 ## 源码锚点
 
-mini-pi 的三个工具，在真 pi 里对应四个文件：
+mini-pi 的三个工具，在pi 里对应四个文件：
 
 1. [`packages/coding-agent/src/core/tools/bash.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/tools/bash.ts) — bash 工具，流式输出 + 截断
 2. [`packages/coding-agent/src/core/tools/read.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/tools/read.ts) — read 工具，支持图片 + offset/limit 分页
@@ -140,17 +140,17 @@ mini-pi 的三个工具，在真 pi 里对应四个文件：
 
 先读一遍，再回答三个问题（答案就在代码里）：
 
-1. `bash.ts` 第 11-14 行用 `typebox` 的 `Type.Object` 定义 schema。真 pi 为什么不直接写 JSON Schema 对象？（提示：静态类型 + 运行时校验共享一份定义）
+1. `bash.ts` 第 11-14 行用 `typebox` 的 `Type.Object` 定义 schema。pi 为什么不直接写 JSON Schema 对象？（提示：静态类型 + 运行时校验共享一份定义）
 2. `read.ts` 第 53 行的 `resolveReadToolPath` 比写工具的 `resolveToolPath` 多走了几步路径变体匹配。为什么读需要这种"宽松"，写不需要？（提示：模型给的路径可能与磁盘大小写/Unicode 不完全一致）
 3. `write.ts` 第 28 行用 `withFileMutationQueue` 包裹整个写操作。本章的 write 没有这层包裹——多次并发写同一文件会怎样？（s03 专题解决）
 
-**动手任务（改 mini-pi）**：给 read 加 `offset` 和 `limit` 两个可选参数，参考真 pi 的 `read.ts` 第 100-114 行：按行切片，offset 是 1-indexed。提示：先用 `split("\n")` 把内容拆成行数组。
+**动手任务（改 mini-pi）**：给 read 加 `offset` 和 `limit` 两个可选参数，参考pi 的 `read.ts` 第 100-114 行：按行切片，offset 是 1-indexed。提示：先用 `split("\n")` 把内容拆成行数组。
 
 ---
 
 ## 妥协清单
 
-| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+| 省略项 | pi 的做法 | 为什么本章可以省 |
 |---|---|---|
 | 图片支持 | read 检测 mime type，jpg/png 走 image content 块 | 教学聚焦文本，图片读取是工程细节 |
 | offset/limit 分页 | 按行切片，大文件分多次读 | 教学版一刀切 50000 字符，足够小文件场景 |
@@ -159,10 +159,10 @@ mini-pi 的三个工具，在真 pi 里对应四个文件：
 | 异步执行 | `executeShellWithCapture` 流式异步 | 教学版 `spawnSync` 同步阻塞，循环短可接受 |
 | 变更队列 | write 经 `withFileMutationQueue` 串行 | s03 专题；本章一轮一写，不会交错 |
 | AbortSignal | signal 贯穿 read/write 全链路 | s04 专题讲；本章循环短，Ctrl+C 够用 |
-| cwd 子树校验 | read/write 不做 cwd 子树校验，安全边界交给 `beforeToolCall` 审批钩子 + system prompt | 教学版加 `safePath` 防止写 `/etc/passwd`，真 pi 没有这层；教学场景需要这层保护，但要知道真 pi 的安全模型不是路径校验 |
-| 命令黑名单 | bash 工具无黑名单，风险由 prompt + 审批钩子兜底 | 教学版硬编码 `["rm -rf /","sudo",...]`，真 pi 完全没有；教学需要这层护栏，但要知道真 pi 不做字符串黑名单 |
-| 超时默认值 | bash schema 无默认超时，模型按需传 timeout | 教学版硬编码 120s，真 pi 可跑半小时长任务；教学需要护栏防止卡死 |
-| 输出截断方向 | bash 保留尾部（`truncateTail`），错误信息通常在末尾 | 教学版 `slice(0, N)` 保留头部，会截掉错误堆栈；真 pi 还保存完整输出到临时文件并提示路径 |
+| cwd 子树校验 | read/write 不做 cwd 子树校验，安全边界交给 `beforeToolCall` 审批钩子 + system prompt | 教学版加 `safePath` 防止写 `/etc/passwd`，pi 没有这层；教学场景需要这层保护，但要知道pi 的安全模型不是路径校验 |
+| 命令黑名单 | bash 工具无黑名单，风险由 prompt + 审批钩子兜底 | 教学版硬编码 `["rm -rf /","sudo",...]`，pi 完全没有；教学需要这层护栏，但要知道pi 不做字符串黑名单 |
+| 超时默认值 | bash schema 无默认超时，模型按需传 timeout | 教学版硬编码 120s，pi 可跑半小时长任务；教学需要护栏防止卡死 |
+| 输出截断方向 | bash 保留尾部（`truncateTail`），错误信息通常在末尾 | 教学版 `slice(0, N)` 保留头部，会截掉错误堆栈；pi 还保存完整输出到临时文件并提示路径 |
 | dispatch 表结构 | `ToolDefinition<schema>` 对象，execute 签名带 signal/onUpdate/ctx | 教学版是 `Record<string, (input)=>string>` 同步函数表；s04 的 signal 贯穿、s05 的事件流都依赖对象签名 |
 
 ---

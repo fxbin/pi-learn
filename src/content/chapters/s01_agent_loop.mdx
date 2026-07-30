@@ -42,7 +42,7 @@ import AgentLoopDiagram from "../../components/diagrams/AgentLoopDiagram.tsx";
 | `content` 里没有 `tool_use` 块 | 模型说"我做完了" | 正常退出循环 |
 | `stop_reason` 是 `"error"` 或 `"aborted"` | LLM 异常或被中断 | 抛错终止 |
 
-`stop_reason` 只用于异常检测，不用于判断循环继续——这是与真 pi 一致的设计。
+`stop_reason` 只用于异常检测，不用于判断循环继续——这是与pi 一致的设计。
 
 <AgentLoopDiagram client:load />
 
@@ -70,7 +70,7 @@ const response = await fetch(`${CONFIG.baseUrl}/v1/messages`, {
 
 **第 2 块：执行工具。** `spawnSync` 同步跑 shell，黑名单、超时、输出截断三道护栏。
 
-**第 3 块：主循环。** 全章核心，只有十几行。退出判断与真 pi 一致——看 content 里有没有 tool_use 块：
+**第 3 块：主循环。** 全章核心，只有十几行。退出判断与pi 一致——看 content 里有没有 tool_use 块：
 
 ```typescript
 while (true) {
@@ -122,21 +122,21 @@ node code.ts
 
 ## 源码锚点
 
-mini-pi 的十几行循环，在真 pi 里对应 `runLoop`：[`packages/agent/src/agent-loop.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/agent-loop.ts) 第 155-275 行。先读一遍，再回答三个问题（答案就在代码里）：
+mini-pi 的十几行循环，在pi 里对应 `runLoop`：[`packages/agent/src/agent-loop.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/agent-loop.ts) 第 155-275 行。先读一遍，再回答三个问题（答案就在代码里）：
 
 1. 第 170 行和第 174 行各有一个 `while`，**两层循环各自为什么存在**？（提示：找 `followUpMessages` 和 `steeringMessages`）
 2. 第 211-214 行：当 `stopReason === "length"` 时，pi **一个工具调用都不执行**。为什么这是对的？（提示：token 截断意味着什么）
 3. 第 295 行的 `convertToLlm` 把内部消息模型转成 LLM 格式，为什么这个转换放在调 LLM 的边界上，而不是让内部直接用 LLM 格式？（s08 会展开）
 
-**动手任务（改 mini-pi）**：真 pi 有钩子和中断保护，mini-pi 没有。给 `agentLoop` 加一个最大轮数保护：循环超过 10 轮就停下来并提示。这是你的第一个 harness 策略——循环的形状不变，行为多了一条约束。
+**动手任务（改 mini-pi）**：pi 有钩子和中断保护，mini-pi 没有。给 `agentLoop` 加一个最大轮数保护：循环超过 10 轮就停下来并提示。这是你的第一个 harness 策略——循环的形状不变，行为多了一条约束。
 
 ---
 
 ## 妥协清单
 
-mini-pi 比真 pi 少做了什么，以及为什么省略是安全的：
+mini-pi 比pi 少做了什么，以及为什么省略是安全的：
 
-| 省略项 | 真 pi 的做法 | 为什么本章可以省 |
+| 省略项 | pi 的做法 | 为什么本章可以省 |
 |---|---|---|
 | 流式输出 | `streamFn` 逐 token 推送 | 非流式一次性返回，语义相同，只是少了打字机效果 |
 | 事件流 | 每步 `emit` 事件供 TUI 渲染 | 用 `console.log` 直接打印，观察者只有终端 |
@@ -147,7 +147,7 @@ mini-pi 比真 pi 少做了什么，以及为什么省略是安全的：
 | 多工具 dispatch | `tools/index.ts` 注册表 | s02 讲；一个工具不需要分发 |
 | 钩子退出 | `shouldStopAfterTurn` 钩子返回 true 时强制退出 | s10 讲；本章没有扩展系统，钩子无处挂 |
 
-**关于退出判断**：mini-pi 和真 pi 都用"`content` 里有没有 `tool_use` 块"判断循环继续，`stop_reason` 只用于异常检测（`"error"`/`"aborted"`）。不要用 `stop_reason === "tool_use"` 判断——那是 Anthropic 的命名，换到 OpenAI 就叫 `"tool_calls"`，写死会绑死 provider。
+**关于退出判断**：mini-pi 和pi 都用"`content` 里有没有 `tool_use` 块"判断循环继续，`stop_reason` 只用于异常检测（`"error"`/`"aborted"`）。不要用 `stop_reason === "tool_use"` 判断——那是 Anthropic 的命名，换到 OpenAI 就叫 `"tool_calls"`，写死会绑死 provider。
 
 这张表是本章的地图：后面七章，就是逐行划掉它。
 
