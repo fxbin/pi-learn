@@ -4,9 +4,10 @@ import ChapterCard from "../components/ChapterCard.astro";
 import { getCollection } from "astro:content";
 
 const chapters = (await getCollection("chapters")).sort((a, b) => a.data.order - b.data.order);
+const HOME_DESCRIPTION = "14 章逐章重建 agent harness：从 while 循环、工具调度、变更队列到会话树与流式输出";
 ---
 
-<Layout title="pi-learn · 从零构建 agent harness">
+<Layout title="pi-learn · 从零构建 agent harness" description={HOME_DESCRIPTION}>
   <section class="hero">
     <div class="container">
       <div class="hero-tag">// 面向 AI Agent 学习者</div>

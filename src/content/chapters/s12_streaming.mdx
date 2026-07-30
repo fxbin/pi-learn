@@ -191,7 +191,7 @@ mini-pi 的流式基础设施比pi 简单很多，以及为什么省略是安全
 | `partial-json` 库 | 层 3 用 `partialParse` 智能补全残缺 JSON（处理 trailing comma、未闭合 key 等） | `closeAllOpen` 简化桩够演示降级思路，残缺时返回 `{}` 语义安全 |
 | `overflow.ts` | 22 个正则识别上下文溢出，触发 s06 的压缩 | 本章只做流式管道，错误处理留给上层；`error` 事件走 `isComplete` 路径已在源码锚点说明 |
 | `AssistantMessageEventStream` 特化类 | 固定 `isComplete=(e)=>e.type==="done"\|\|"error"`，`extractResult` 按 type 取 `message`/`error` | 用泛型 `MiniEventStream<T,R>` + 两个回调等效表达，少一层继承 |
-| 背压 | pi 的事件流有上限保护，生产者过快会阻塞 | 教学场景事件量小，无背压版本更易理解 push/await 握手 |
+| 背压 | pi 的 `EventStream` 同样是无界数组队列（`private queue: T[] = []`），生产者过快不会阻塞，依赖上游节流 | 教学场景事件量小，无背压版本更易理解 push/await 握手；与 pi 行为一致 |
 | 多消费者 | pi 允许多个 `for await` 并发消费同一流 | 单消费者已能讲清双输出，多消费者只是 `waiting` 数组多几项 |
 | SSE 解析 | pi 按行解析 `data: ...\n\n` 帧、处理 `event:` 类型 | demo 直接 push 字符串 token，跳过 SSE 帧解析这层无关细节 |
 | `end(result)` 带参 | pi 的 `end` 可显式传入最终结果（非 complete 事件触发的结束） | demo 用 complete 事件触发 resolve，`end()` 只做唤醒，简化签名 |
@@ -217,4 +217,8 @@ mini-pi 的流式基础设施比pi 简单很多，以及为什么省略是安全
 
 ---
 
-**十二章走完，mini-pi 的流式管道接通了。** 从 s08 的一次性返回，到 s12 的逐 token 流式，agent harness 离pi 又近了一步。EventStream 的双输出让"打字机渲染"和"工具执行"两条路径各取所需，repairJson 让 LLM 的脏输出不再炸掉解析器。下一章见。
+**十二章走完，mini-pi 的流式管道接通了。** 从 s08 的一次性返回，到 s12 的逐 token 流式，agent harness 离pi 又近了一步。EventStream 的双输出让"打字机渲染"和"工具执行"两条路径各取所需，repairJson 让 LLM 的脏输出不再炸掉解析器。
+
+---
+
+下一章：[s13 有状态 Agent — 双队列与状态机](/pi-learn/chapters/s13_stateful_agent/)

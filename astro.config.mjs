@@ -13,7 +13,10 @@ export default defineConfig({
   integrations: [mdx(), react()],
   markdown: {
     shikiConfig: {
-      theme: "github-dark",
+      themes: {
+        light: "github-light",
+        dark: "github-dark",
+      },
       wrap: true,
     },
   },

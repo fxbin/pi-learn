@@ -127,9 +127,9 @@ node s05_session/code.ts
 
 mini-pi 的两个函数，在pi 里对应一整套 session 子系统：[`packages/agent/src/harness/session/`](https://github.com/earendil-works/pi/tree/v0.76.0/packages/agent/src/harness/session/)。先读 [`jsonl-storage.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/harness/session/jsonl-storage.ts)，再回答三个问题：
 
-1. `jsonl-storage.ts` 第 226-241 行的 `create` 方法：pi 创建会话时先写一行 **header**（`type: "session"`），然后才写 entry。为什么需要 header？mini-pi 没有 header 会怎样？（提示：想想多会话和 fork）
-2. 第 278-287 行的 `appendEntry`：pi 的每条 entry 都有 `id`、`parentId`、`timestamp`，构成一棵树。mini-pi 的消息没有 ID，只有数组顺序。树结构比线性数组多了什么能力？（提示：看 `getPathToRootOrCompaction` 和 `fork`）
-3. `session.ts` 第 150-200 行的 `Session` 类：pi 的 session 不只存消息，还存 `thinking_level_change`、`model_change`、`compaction`、`label` 等多种 entry 类型。为什么不全塞进消息的 content？（提示：哪些 entry 需要被模型看到，哪些只是元数据）
+1. `jsonl-storage.ts` 第 191-213 行的 `create` 方法：pi 创建会话时先写一行 **header**（`type: "session"`），然后才写 entry。为什么需要 header？mini-pi 没有 header 会怎样？（提示：想想多会话和 fork）
+2. 第 250-259 行的 `appendEntry`：pi 的每条 entry 都有 `id`、`parentId`、`timestamp`，构成一棵树。mini-pi 的消息没有 ID，只有数组顺序。树结构比线性数组多了什么能力？（提示：看 `getPathToRootOrCompaction` 和 `fork`）
+3. `session.ts` 第 78 行起的 `Session` 类（如第 148-200 行的 `appendModelChange`/`appendCompaction` 等方法）：pi 的 session 不只存消息，还存 `thinking_level_change`、`model_change`、`compaction`、`label` 等多种 entry 类型。为什么不全塞进消息的 content？（提示：哪些 entry 需要被模型看到，哪些只是元数据）
 
 **动手任务（改 mini-pi）**：给 `loadMessages` 加一个容错——如果某行 `JSON.parse` 失败，跳过这行并打印警告，而不是整个崩溃。想想：生产环境里为什么不能因为一条坏行就丢掉整个会话？
 

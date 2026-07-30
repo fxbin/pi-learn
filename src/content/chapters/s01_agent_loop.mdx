@@ -16,7 +16,7 @@ import AgentLoopDiagram from "../../components/diagrams/AgentLoopDiagram.tsx";
 
 > 一个工具 + 一个循环 = 一个 Agent。
 
-`s01` → [s02](/pi-learn/chapters/s02_tools/) → s03 → ... → s08
+`s01` → [s02](/pi-learn/chapters/s02_tools/)
 
 ---
 
@@ -123,11 +123,10 @@ node code.ts
 
 ## 源码锚点
 
-mini-pi 的十几行循环，在pi 里对应 `runLoop`：[`packages/agent/src/agent-loop.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/agent-loop.ts) 第 155-275 行。先读一遍，再回答三个问题（答案就在代码里）：
+mini-pi 的十几行循环，在pi 里对应 `runLoop`：[`packages/agent/src/agent-loop.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/agent-loop.ts) 第 155-269 行。先读一遍，再回答两个问题（答案就在代码里）：
 
 1. 第 170 行和第 174 行各有一个 `while`，**两层循环各自为什么存在**？（提示：找 `followUpMessages` 和 `steeringMessages`）
-2. 第 211-214 行：当 `stopReason === "length"` 时，pi **一个工具调用都不执行**。为什么这是对的？（提示：token 截断意味着什么）
-3. 第 295 行的 `convertToLlm` 把内部消息模型转成 LLM 格式，为什么这个转换放在调 LLM 的边界上，而不是让内部直接用 LLM 格式？（s08 会展开）
+2. 第 289 行的 `convertToLlm` 把内部消息模型转成 LLM 格式，为什么这个转换放在调 LLM 的边界上，而不是让内部直接用 LLM 格式？（s08 会展开）
 
 **动手任务（改 mini-pi）**：pi 有钩子和中断保护，mini-pi 没有。给 `agentLoop` 加一个最大轮数保护：循环超过 10 轮就停下来并提示。这是你的第一个 harness 策略——循环的形状不变，行为多了一条约束。
 
@@ -143,7 +142,6 @@ mini-pi 比pi 少做了什么，以及为什么省略是安全的：
 | 事件流 | 每步 `emit` 事件供 TUI 渲染 | 用 `console.log` 直接打印，观察者只有终端 |
 | 中断 AbortSignal | signal 贯穿全链路 | s04 专门讲，本章循环短，Ctrl+C 够用 |
 | steering / follow-up | 双层循环注入运行中消息 | s04 讲；本章一问一答，不存在运行中插话 |
-| length 截断保护 | 截断时整批拒执行工具调用 | 单工具 + 8000 token 极少触发；锚点问题 2 已点名 |
 | 精细截断 | `utils/truncate.ts` 按行/字节策略截断 | 简单 `slice` 教学够用，s02 会碰到它的边界 |
 | 多工具 dispatch | `tools/index.ts` 注册表 | s02 讲；一个工具不需要分发 |
 | 钩子退出 | `shouldStopAfterTurn` 钩子返回 true 时强制退出 | s10 讲；本章没有扩展系统，钩子无处挂 |

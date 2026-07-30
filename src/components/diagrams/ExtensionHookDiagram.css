@@ -263,7 +263,7 @@
 
 .ehd-ext.ehd-ext-ok {
   border-color: var(--green);
-  box-shadow: 0 0 12px rgba(0, 255, 102, 0.25);
+  box-shadow: 0 0 12px var(--glow-green);
 }
 
 .ehd-ext.ehd-ext-ok .ehd-ext-status {

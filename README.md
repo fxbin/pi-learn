@@ -16,7 +16,7 @@
 
 ## 笔记目录
 
-14 篇核心机制 + 番外，每篇对应 pi 的一个模块。
+14 篇核心机制 + 3 个番外主题，每篇对应 pi 的一个模块。
 
 | 篇 | 标题 | 核心内容 | pi 源码锚点 |
 |---|---|---|---|
@@ -30,11 +30,13 @@
 | s08 | Provider | 两套供应商数据模型平等独立，pi 抽象 AgentMessage 中间层 | `packages/ai/src/providers/`、`packages/ai/src/api/transform-messages.ts` |
 | s09 | TUI 渲染 | 终端渲染、输入处理与流式输出 | `packages/coding-agent/src/core/tui/` |
 | s10 | Extensions | 动态加载 + 生命周期钩子（Observer/Interceptor/Transformer） | `packages/coding-agent/src/core/extensions/` |
-| s11 | AgentSession | prompt 入口、phase 状态机、双队列 drain、overflow 恢复 | `packages/coding-agent/src/core/agent-session.ts` |
+| s11 | AgentSession | 分层架构 + compaction 自动触发 + 模型切换 + 事件订阅 | `packages/coding-agent/src/core/agent-session.ts` |
 | s12 | Streaming | SSE 流式协议、in-place partial 更新、事件流分类 | `packages/agent/src/agent-loop.ts`、`packages/ai/src/utils/event-stream.ts` |
-| s13 | Stateful Agent | 跨会话状态保持、消息历史回放 | `packages/coding-agent/src/core/agent-session.ts` |
+| s13 | Stateful Agent | steering/followUp 双队列 + idle/running 状态机 + 事件串行派发 | `packages/coding-agent/src/core/agent-session.ts` |
 | s14 | 会话分支树 | id/parentId DAG、leafId 指针、branch/fork/compaction 三态 | `packages/coding-agent/src/core/session/branch-tree.ts` |
-| 番外 | Extensions 实战 | 给真 pi 写一个扩展，agent 改自己 | `.pi/extensions/` |
+| 番外·01 | 扩展系统 | 运行时加载 TS 模块，注册工具/命令/provider/UI/快捷键，三层错误隔离 | `.pi/extensions/`、`packages/coding-agent/examples/extensions/` |
+| 番外·02 | 订阅认证 | device code 流程 + PKCE，无浏览器跳转拿访问令牌 | `packages/ai/src/auth/oauth/` |
+| 番外·03 | 终端界面 | 事件流消费 + Ink 渲染 + 焦点管理 + 60fps 多窗口布局 | `packages/tui/` |
 
 每篇正文里有动态图示（流式动画、事件流、循环可视化）帮助理解执行过程。总览页 `/overview` 用一张动态大图把整个 agent 执行流程串起来。
 
@@ -99,7 +101,7 @@ npm run check
 
 ## pi 版本锚定
 
-本笔记基于 pi `v0.76.0` 源码快照（[earendil-works/pi@v0.76.0](https://github.com/earendil-works/pi/tree/v0.76.0)，本仓库镜像在 `.reference/pi/`）。pi 主仓持续演进，若你阅读最新源码时发现行号或结构漂移，以机制为单位对照即可，篇目锚点会按需修订。
+本笔记基于 pi `v0.76.0` 源码快照（[earendil-works/pi@v0.76.0](https://github.com/earendil-works/pi/tree/v0.76.0)，本地克隆镜像在 `.reference/pi/`，该目录被 `.gitignore` 排除、不入库，需自行 `git clone` 做对照）。pi 主仓持续演进，若你阅读最新源码时发现行号或结构漂移，以机制为单位对照即可，篇目锚点会按需修订。
 
 ## 目录结构
 
@@ -110,13 +112,18 @@ src/
   components/
     diagrams/              各篇动态图组件（React + CSS 变量，暗/亮主题）
     CodeDrawer.tsx         源码抽屉（侧边栏打开 + 轻量语法高亮）
-    ChapterNav.astro       导航
+    CodeDrawer.css         源码抽屉样式
+    ChapterNav.astro       侧边章节导航
+    ChapterCard.astro      首页/总览页章节卡片
+    Header.astro           全站页头
+    ScrollProgress.astro   阅读进度条
     ThemeToggle.tsx        暗/亮主题切换
+    highlight.ts           轻量语法高亮规则
   layouts/Layout.astro     全站布局
   styles/global.css        CSS 变量主题
 public/chapters/           每篇示例代码 code.ts + practice.ts
 appendix/                  TS 急救包 + 语言无关概念映射
-.reference/pi/             pi v0.76.0 源码快照（对照用）
+.reference/pi/             pi v0.76.0 源码快照（本地克隆镜像，不入库，需自行 clone）
 .github/workflows/deploy.yml   GitHub Pages 自动部署
 ```
 

@@ -3,13 +3,27 @@ import ThemeToggle from "./ThemeToggle.tsx";
 
 /**
  * 站点顶部导航栏。
+ * 含 logo、主导航（总览 / 章节 / 番外）、版本信息与主题开关。
+ * 窄屏下保留主导航与主题开关，仅隐藏版本信息文本。
  * @author fxbin
  */
+
+/** 主导航链接项。路径与 astro.config.mjs 的 base 保持一致。 */
+const NAV_ITEMS = [
+  { label: "总览", href: "/pi-learn/overview/" },
+  { label: "章节", href: "/pi-learn/" },
+  { label: "番外", href: "/pi-learn/extras/" },
+];
 ---
 
 <header>
   <div class="container header-inner">
     <a href="/pi-learn/" class="logo">PI<span>-</span>LEARN</a>
+    <nav class="main-nav" aria-label="主导航">
+      {NAV_ITEMS.map((item) => (
+        <a href={item.href}>{item.label}</a>
+      ))}
+    </nav>
     <div class="header-right">
       <span>DOCS v0.1.0</span>
       <span>BUILD: STABLE</span>
@@ -35,6 +49,7 @@ import ThemeToggle from "./ThemeToggle.tsx";
     justify-content: space-between;
     align-items: center;
     height: 64px;
+    gap: 24px;
   }
 
   .logo {
@@ -46,6 +61,24 @@ import ThemeToggle from "./ThemeToggle.tsx";
   }
 
   .logo span {
+    color: var(--orange);
+  }
+
+  .main-nav {
+    display: flex;
+    gap: 24px;
+    flex: 1;
+    margin-left: 16px;
+  }
+
+  .main-nav a {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    transition: color 0.2s ease;
+  }
+
+  .main-nav a:hover {
     color: var(--orange);
   }
 
@@ -92,6 +125,11 @@ import ThemeToggle from "./ThemeToggle.tsx";
   @media (max-width: 640px) {
     .header-right span {
       display: none;
+    }
+
+    .main-nav {
+      gap: 16px;
+      margin-left: 8px;
     }
   }
 </style>

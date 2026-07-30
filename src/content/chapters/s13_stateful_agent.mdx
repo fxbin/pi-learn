@@ -208,3 +208,7 @@ mini-pi 比pi 少做了什么，以及为什么省略是安全：
 通过标准：`node practice.ts` 跑起来，能正常对话；用 `/steer xxx` 注入能在下一轮 LLM 前生效；用 `/follow xxx` 注入能让 agent 续跑一轮；`/abort` 能中止当前 run。
 
 写不出 `loop()` 说明两个 drain 位置没进脑子，回到「工作原理」第 3 块重读，重点记"内层开头 drain steering（循环内）→ 内层退出后 drain followUp（循环外）"这个时序差异。写不出 `processEvents()` 的串行 await——把 `for...of` 写成 `forEach`——回到第 4 块重读，这是"listener 的 promise 计入 run settlement"的关键。
+
+---
+
+下一章：[s14 会话分支树 — 一个 .jsonl 如何承载对话分叉](/pi-learn/chapters/s14_session_tree/)

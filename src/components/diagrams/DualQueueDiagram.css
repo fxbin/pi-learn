@@ -245,7 +245,7 @@
 .dq-fsm-node.running.on {
   border-color: var(--green);
   color: var(--green);
-  box-shadow: 0 0 12px rgba(0, 255, 102, 0.2);
+  box-shadow: 0 0 12px var(--glow-green);
 }
 
 .dq-fsm-node.aborted.on {

@@ -136,9 +136,9 @@ node code.ts
 
 mini-pi 的压缩是教学级简化。pi 的实现分布在 [`packages/agent/src/harness/compaction/`](https://github.com/earendil-works/pi/tree/v0.76.0/packages/agent/src/harness/compaction/)，先读 [`compaction.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/agent/src/harness/compaction/compaction.ts)，回答三个问题（答案就在代码里）：
 
-1. `estimateTokens`（第 287 行）对每种 role 分别数字符，而我们的 `flattenText` 把所有块一视同仁。pi 为什么要分 role？`bashExecution` 和 `compactionSummary` 这两种 pi 独有的 role，教学版为什么可以忽略？（提示：我们的消息类型只有 user/assistant 两种）
-2. `shouldCompact`（第 263 行）的判断是 `contextTokens > contextWindow - reserveTokens`，而我们是 `> maxContextTokens`。`reserveTokens` 这个"预留量"在防什么？（提示：摘要本身也要占 token，不预留会怎样）
-3. `findCutPoint`（第 396 行）倒着累加 token 找切点，且只在 **user 消息边界**切；我们是按固定条数 `keepRecentMessages` 切。如果在 `tool_use` 和 `tool_result` 之间切会发生什么？（提示：tool_result 必须紧跟在对应的 tool_use 后面，否则 API 报错）
+1. `estimateTokens`（第 202 行）对每种 role 分别数字符，而我们的 `flattenText` 把所有块一视同仁。pi 为什么要分 role？`bashExecution` 和 `compactionSummary` 这两种 pi 独有的 role，教学版为什么可以忽略？（提示：我们的消息类型只有 user/assistant 两种）
+2. `shouldCompact`（第 196 行）的判断是 `contextTokens > contextWindow - reserveTokens`，而我们是 `> maxContextTokens`。`reserveTokens` 这个"预留量"在防什么？（提示：摘要本身也要占 token，不预留会怎样）
+3. `findCutPoint`（第 328 行）倒着累加 token 找切点，且只在 **user 消息边界**切；我们是按固定条数 `keepRecentMessages` 切。如果在 `tool_use` 和 `tool_result` 之间切会发生什么？（提示：tool_result 必须紧跟在对应的 tool_use 后面，否则 API 报错）
 
 **动手任务（改 mini-pi）**：给 `compact` 加一个保护——如果 `oldMessages` 为空（历史全在工作集里），直接返回原数组不调 LLM。再思考：什么情况下 `messages.length > keepRecentMessages` 成立、但 `splitIndex` 算出来后 `oldMessages` 仍可能为空？（提示：`Math.max(0, ...)`）
 

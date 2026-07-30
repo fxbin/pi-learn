@@ -1827,7 +1827,10 @@ function ChapterNode({
   onSeamKeyDown,
 }: ChapterNodeProps) {
   const tooltipText = node.subChapters
-    ? [node.chapter, ...node.subChapters].map((c) => c.replace("_", " ")).join(" · ")
+    ? [node.chapter, ...node.subChapters]
+        .filter((c): c is string => typeof c === "string")
+        .map((c) => c.replace("_", " "))
+        .join(" · ")
     : node.chapter?.replace("_", " ");
 
   const isSeamExpanded = node.seamKey && expandedSeam === node.seamKey;

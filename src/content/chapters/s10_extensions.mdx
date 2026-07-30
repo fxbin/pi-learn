@@ -38,7 +38,7 @@ s07 的 skills 是"静态 `.md` 注入"：启动时扫一遍目录，把文件�
 
 每个扩展是一个 TS 模块，`default export` 一个工厂函数 `(api) => { api.on(event, handler) }`。加载器调用 `await factory(api)`，工厂函数用 `api.on` 把 handler 注册到事件上。核心循环在固定接缝（session 开始、工具调用前、消息结束后…）调用 `runner.emit(event)`，所有注册了该事件的 handler 依次执行。
 
-pi 有 26 个事件。教学版归纳成**三类钩子模式**（每种模式 emit 策略不同）：
+pi 有 22 个顶层事件（`SessionEvent` 展开 8 个子事件，总计 29 个叶事件类型）。教学版归纳成**三类钩子模式**（每种模式 emit 策略不同）：
 
 ```
 Observer（只观察）       session_start / session_shutdown   → emit，无返回值，不短路
@@ -70,7 +70,7 @@ Transformer（链式 reduce） context / message_end               → emitTrans
 type ExtensionFactory = (api: ExtensionAPI) => void | Promise<void>;
 ```
 
-支持同步或异步初始化（`Promise<void>`）。事件按三类分接口：Observer 事件（`SessionStartEvent` 等）无返回值；Interceptor 事件（`ToolCallEvent`）配 `ToolCallEventResult { block?, reason? }`；Transformer 事件（`ContextEvent`/`MessageEndEvent`）返回变换后的值。pi 的 26 个事件是 `ExtensionEvent` 联合类型（见 types.ts:949），教学版精简到 6 个。
+支持同步或异步初始化（`Promise<void>`）。事件按三类分接口：Observer 事件（`SessionStartEvent` 等）无返回值；Interceptor 事件（`ToolCallEvent`）配 `ToolCallEventResult { block?, reason? }`；Transformer 事件（`ContextEvent`/`MessageEndEvent`）返回变换后的值。pi 的 22 个顶层事件（`SessionEvent` 展开后共 29 个叶事件类型）是 `ExtensionEvent` 联合类型（见 types.ts:950），教学版精简到 6 个。
 
 **第 2 块：Runtime + 加载器。** `createExtensionRuntime` 是关键工程决策——action 方法是 **throwing stubs**：
 
@@ -207,7 +207,7 @@ mini-pi 的扩展系统是教学级简化。pi 的实现在以下三个文件，
 | 同上 | 806-827 | `emitToolCall`：**没有 try/catch**（见下方讨论） |
 | [`.../extensions/loader.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/loader.ts) | 124-170 | `createExtensionRuntime`：十几个 action 方法全是 throwing stubs，等 bindCore 替换 |
 | 同上 | 331-343 | `loadExtensionModule`：jiti 运行时加载 TS，取 default 作为 factory |
-| [`.../extensions/types.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/types.ts) | 949-972 | `ExtensionEvent` 联合类型：26 个事件 |
+| [`.../extensions/types.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/coding-agent/src/core/extensions/types.ts) | 950-972 | `ExtensionEvent` 联合类型：22 个顶层事件 |
 | 同上 | 1378-1379 | `ExtensionFactory` 类型签名（同步或异步） |
 
 **工程瑕疵讨论点**：pi 的 `emitToolCall`（runner.ts:806）**缺少 try/catch**。第 815 行 `await handler(event, ctx)` 直接执行，handler 抛错会一路冒泡出 `emitToolCall`，不像通用 `emit` 那样走 `emitError` 隔离。这意味着：一个 tool_call handler 抛错会让整条 tool_call 分发链崩掉，连后续扩展的 block 检查都跑不到。对比我们的 code.ts——`emit` 把 Observer 和 Interceptor 统一处理，try/catch 一视同仁。这是真实代码库里"复制粘贴忘了套壳"的典型痕迹，读源码时要带着批判眼光。
@@ -216,7 +216,7 @@ mini-pi 的扩展系统是教学级简化。pi 的实现在以下三个文件，
 
 1. 通用 `emit`（680 行）用 `isSessionBeforeEvent` 判断是否检查 `result.cancel`——为什么不直接判断 `result?.cancel`？（提示：Transformer 事件的 result 没有 cancel 字段，但类型上是 `unknown`，运行时可能误命中）
 2. `emitMessageEnd`（729 行）校验 `handlerResult.message.role !== currentMessage.role` 就 emitError 并 continue——为什么 role 变了就拒绝？一个把 assistant 消息改成 user 消息的扩展会导致什么？（提示：消息顺序错乱，模型把"自己的话"当"用户的输入"）
-3. `createExtensionRuntime`（loader.ts:154）的 `invalidate` 用 `??=`（只赋值一次）——为什么不用 `=` 覆盖？第二次 invalidate 的消息会被忽略，这防的是什么？（提示：第一次的 staleMessage 已经被 assertActive 抛出，覆盖会让错误信息漂移）
+3. `createExtensionRuntime`（loader.ts:154）的 `invalidate` 用 `??=`（只赋值一次）——为什么不用 `=` 覆盖？第二次 invalidate 的消息会被忽略，这防的是什么？（提示：第一次的 staleMessage 已经被 assertActive 抛出，覆盖会让错误信息漂移）。注意：`runner.ts` 第 466-473 行的同名 `invalidate` 用 `if (!this.staleMessage)` 判断实现"只赋值一次"，行为与 loader.ts 一致但写法不同——读源码时不要因为找不到 `??=` 而困惑。
 
 **动手任务（改 mini-pi）**：给 code.ts 的 `emitInterceptor` 加一个 `onBlock` 回调参数，当扩展 block 时调用它记录是哪个扩展拦截的。再思考：为什么 blockDangerousTool 的 `on("tool_call", ...)` 要返回 `undefined` 表示放行，而不是不返回？（提示：emit 里 `r && (r.cancel || r.block)` 依赖 truthy 判断，返回 undefined 明确表达"不拦截"）
 
@@ -229,7 +229,7 @@ mini-pi 的扩展系统比pi 简单很多，以及为什么省略是安全：
 | 省略项 | pi 的做法 | 为什么本章可以省 |
 |---|---|---|
 | jiti 运行时加载 | `loadExtensionModule` 用 jiti 支持运行时 TS（禁用 moduleCache） | 教学版直接传入 factory 函数，`await factory(api)` 这一步一致，省掉 jiti 配置噪音 |
-| 26 个事件 | `ExtensionEvent` 联合类型 26 个，含 resources_discover/model_select/user_bash 等 | 归纳成 6 个事件 + 3 类模式足够演示钩子编排；多出的只是更多接缝 |
+| 22 个事件 | `ExtensionEvent` 联合类型 22 个顶层事件（`SessionEvent` 展开后共 29 个叶事件类型），含 resources_discover/model_select/user_bash 等 | 归纳成 6 个事件 + 3 类模式足够演示钩子编排；多出的只是更多接缝 |
 | TypeBox schema | 工具/命令注册带 TypeBox 运行时校验 | 教学版 tools 只打印不执行，schema 校验无意义 |
 | 命令快捷键冲突仲裁 | `resolveRegisteredCommands` 检测重名命令、shortcut 冲突 | 没有命令系统，冲突检测无对象 |
 | EventBus / 事件优先级 | pi 支持扩展间通信与优先级排序 | 单向 emit（核心→扩展）已演示钩子模式；扩展间通信是进阶 |
@@ -269,4 +269,8 @@ mini-pi 的扩展系统比pi 简单很多，以及为什么省略是安全：
 - **s10 = 怎么跑**：事件订阅、handler 编排、错误隔离、stale 保护。读完能写出一个 Observer/Interceptor/Transformer 扩展。
 - **番外 = 还能做什么**：registerTool 注入 dispatch table、registerCommand 拿会话控制权、registerProvider + OAuth、UI overlay、plan-mode 模式组合。读完知道扩展的能力边界在哪。
 
-番外还补全了剩余 20 个事件清单、ExtensionAction 方法集（sendMessage/setModel/compact…）、官方示例索引（hello.ts → doom-overlay → subagent）。
+番外还补全了剩余 16 个事件清单、ExtensionAction 方法集（sendMessage/setModel/compact…）、官方示例索引（hello.ts → doom-overlay → subagent）。
+
+---
+
+下一章：[s11 AgentSession — 会话编排与公共 SDK 设计](/pi-learn/chapters/s11_agent_session/)

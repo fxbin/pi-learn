@@ -16,7 +16,7 @@ import DispatchTableDiagram from "../../components/diagrams/DispatchTableDiagram
 
 > 一个工具太少了，三个刚好。循环不变，只换一张表。
 
-s01 → `s02` → [s03](/pi-learn/chapters/s03_edit_queue/) → [s04](/pi-learn/chapters/s04_interrupt/) → ... → s08
+[s01](/pi-learn/chapters/s01_agent_loop/) → `s02` → [s03](/pi-learn/chapters/s03_edit_queue/)
 
 ---
 
@@ -142,11 +142,11 @@ mini-pi 的三个工具，在pi 里对应四个文件：
 
 先读一遍，再回答三个问题（答案就在代码里）：
 
-1. `bash.ts` 第 11-14 行用 `typebox` 的 `Type.Object` 定义 schema。pi 为什么不直接写 JSON Schema 对象？（提示：静态类型 + 运行时校验共享一份定义）
-2. `read.ts` 第 53 行的 `resolveReadToolPath` 比写工具的 `resolveToolPath` 多走了几步路径变体匹配。为什么读需要这种"宽松"，写不需要？（提示：模型给的路径可能与磁盘大小写/Unicode 不完全一致）
-3. `write.ts` 第 28 行用 `withFileMutationQueue` 包裹整个写操作。本章的 write 没有这层包裹——多次并发写同一文件会怎样？（s03 专题解决）
+1. `bash.ts` 第 24-27 行用 `typebox` 的 `Type.Object` 定义 schema。pi 为什么不直接写 JSON Schema 对象？（提示：静态类型 + 运行时校验共享一份定义）
+2. `path-utils.ts` 的 `resolveReadPathAsync`（在 `read.ts` 第 15 行导入）比写工具的路径解析多走了几步路径变体匹配。为什么读需要这种"宽松"，写不需要？（提示：模型给的路径可能与磁盘大小写/Unicode 不完全一致）
+3. `write.ts` 第 203 行用 `withFileMutationQueue` 包裹整个写操作。本章的 write 没有这层包裹——多次并发写同一文件会怎样？（s03 专题解决）
 
-**动手任务（改 mini-pi）**：给 read 加 `offset` 和 `limit` 两个可选参数，参考pi 的 `read.ts` 第 100-114 行：按行切片，offset 是 1-indexed。提示：先用 `split("\n")` 把内容拆成行数组。
+**动手任务（改 mini-pi）**：给 read 加 `offset` 和 `limit` 两个可选参数，参考pi 的 `read.ts` 第 284-324 行：按行切片，offset 是 1-indexed。提示：先用 `split("\n")` 把内容拆成行数组。
 
 ---
 

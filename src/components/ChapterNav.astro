@@ -4,6 +4,8 @@ import { getCollection } from "astro:content";
 /**
  * 章节页面左侧导航组件。
  * 列出所有章节，高亮当前章节，并显示当前章节的二级标题锚点。
+ * 窄屏（≤1100px）下桌面侧栏隐藏，改为顶部可折叠的 <details> 抽屉，
+ * 保证移动端仍可切换章节与查看本章目录。
  * @author fxbin
  */
 interface Props {
@@ -14,6 +16,8 @@ interface Props {
 const { currentSlug, headings = [] } = Astro.props;
 const chapters = (await getCollection("chapters")).sort((a, b) => a.data.order - b.data.order);
 const sectionHeadings = headings.filter((h) => h.depth === 2);
+const MOBILE_SUMMARY_LABEL = "章节目录";
+const MOBILE_SUMMARY_ARROW = "▾";
 ---
 
 <aside class="chapter-nav" aria-label="章节导航">
@@ -51,6 +55,45 @@ const sectionHeadings = headings.filter((h) => h.depth === 2);
   </nav>
 </aside>
 
+<details class="chapter-nav-mobile" aria-label="章节导航（移动端）">
+  <summary class="mobile-nav-toggle">
+    <span>{MOBILE_SUMMARY_LABEL}</span>
+    <span class="mobile-nav-arrow" aria-hidden="true">{MOBILE_SUMMARY_ARROW}</span>
+  </summary>
+  <nav class="nav-sections">
+    <div class="nav-group">
+      <div class="nav-label">章节</div>
+      <ul class="chapter-list">
+        {chapters.map((ch) => {
+          const slug = ch.id.replace(/\.(md|mdx)$/, "");
+          const isActive = slug === currentSlug;
+          return (
+            <li class={isActive ? "active" : ""}>
+              <a href={`/pi-learn/chapters/${slug}/`} class={isActive ? "active" : ""}>
+                <span class="chapter-num-small">{ch.data.num}</span>
+                <span class="chapter-title-small">{ch.data.title}</span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+
+    {sectionHeadings.length > 0 && (
+      <div class="nav-group">
+        <div class="nav-label">本章目录</div>
+        <ul class="heading-list">
+          {sectionHeadings.map((h) => (
+            <li>
+              <a href={`#${h.slug}`}>{h.text}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </nav>
+</details>
+
 <style>
   .chapter-nav {
     position: fixed;
@@ -64,6 +107,10 @@ const sectionHeadings = headings.filter((h) => h.depth === 2);
     overflow-y: auto;
     padding: 32px 20px;
     z-index: 1200;
+  }
+
+  .chapter-nav-mobile {
+    display: none;
   }
 
   .nav-sections {
@@ -136,9 +183,55 @@ const sectionHeadings = headings.filter((h) => h.depth === 2);
     color: var(--green);
   }
 
+  /*
+   * 移动端折叠导航的 summary 按钮：
+   * 隐藏默认 marker，做成与 header 同高度的 sticky 横条。
+   */
+  .mobile-nav-toggle {
+    list-style: none;
+    padding: 14px 20px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mobile-nav-toggle::-webkit-details-marker {
+    display: none;
+  }
+
+  .mobile-nav-arrow {
+    color: var(--text-dim);
+    transition: transform 0.2s ease;
+  }
+
+  .chapter-nav-mobile[open] .mobile-nav-arrow {
+    transform: rotate(180deg);
+  }
+
+  .chapter-nav-mobile[open] .nav-sections {
+    padding: 16px 20px 24px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
   @media (max-width: 1100px) {
     .chapter-nav {
       display: none;
+    }
+
+    .chapter-nav-mobile {
+      display: block;
+      position: sticky;
+      top: 64px;
+      z-index: 1200;
+      background: var(--header-bg);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
     }
   }
 </style>

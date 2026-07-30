@@ -1,6 +1,7 @@
 ---
 /**
  * 顶部滚动进度条（机械卷尺效果）。
+ * scroll 事件用 requestAnimationFrame 合并，同一帧多次触发只写一次 DOM，避免长页面抖动。
  * @author fxbin
  */
 ---
@@ -16,7 +17,7 @@
     background: var(--orange);
     width: 0%;
     z-index: 2000;
-    box-shadow: 0 0 10px rgba(255, 77, 0, 0.5);
+    box-shadow: 0 0 10px var(--glow-orange);
     transition: width 0.1s linear;
   }
 </style>
@@ -24,10 +25,19 @@
 <script>
   const tape = document.getElementById("progress-tape");
   if (tape) {
-    window.addEventListener("scroll", () => {
+    let ticking = false;
+    const update = () => {
+      ticking = false;
       const h = document.documentElement;
       const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight);
       tape.style.width = `${scrolled * 100}%`;
-    });
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
   }
 </script>

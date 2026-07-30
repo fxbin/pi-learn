@@ -15,6 +15,8 @@
   --shadow: rgba(0, 0, 0, 0.4);
   --glow-orange: rgba(255, 77, 0, 0.18);
   --glow-red: rgba(255, 51, 51, 0.25);
+  --glow-green: rgba(0, 255, 102, 0.25);
+  --glow-purple: rgba(168, 85, 247, 0.3);
   --font-display: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", "Consolas", monospace;
   --overlay-bg: rgba(0, 0, 0, 0.5);
@@ -75,11 +77,20 @@
 }
 
 html {
-  scroll-behavior: smooth;
   scroll-padding-top: 80px;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-display);
+}
+
+/*
+ * 平滑滚动仅在用户未声明减少动效偏好时启用。
+ * 遵守 prefers-reduced-motion，避免对前庭觉敏感用户造成不适。
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 body {
@@ -117,5 +128,64 @@ a {
 
 ::selection {
   background: var(--orange);
+  color: var(--bg);
+}
+
+/*
+ * 全局键盘聚焦反馈：暗色背景下默认 outline 常不可见，
+ * 统一用 --orange 高亮，保证 ChapterCard / ChapterNav / Header 等链接 Tab 聚焦可见。
+ */
+:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+/*
+ * 全局动效降级：尊重 prefers-reduced-motion: reduce，
+ * 把所有动画/过渡压缩到接近瞬时，并关闭平滑滚动。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Shiki 双主题：配合 astro.config.mjs 的 dual themes（github-light / github-dark）。
+ * Shiki dual theme 把每 token 颜色写入 --shiki-light / --shiki-dark 变量但不直接生效，
+ * 此处按项目主题约定切换：默认暗色用 dark token，html.theme-on 亮色用 light token。
+ * pre 背景仍由各页面 var(--surface) 控制，此处只切 token 前景。
+ */
+.astro-code span {
+  color: var(--shiki-dark);
+}
+
+.theme-on .astro-code span {
+  color: var(--shiki-light);
+}
+
+/*
+ * 跳转到主内容链接（无障碍）：默认视觉隐藏，键盘聚焦时显现。
+ * 配合 Layout.astro 的 <a href="#main" class="skip-link"> 与 <main id="main">。
+ */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 3000;
+  padding: 12px 20px;
+  background: var(--orange);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.skip-link:focus {
+  left: 0;
   color: var(--bg);
 }

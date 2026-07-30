@@ -16,7 +16,7 @@ import MutationQueueDiagram from "../../components/diagrams/MutationQueueDiagram
 
 > edit 是最难的工具：它修改已有内容，而不是整文件覆盖。
 
-s01 → s02 → `s03` → [s04](/pi-learn/chapters/s04_interrupt/) → ... → s08
+[s02](/pi-learn/chapters/s02_tools/) → `s03` → [s04](/pi-learn/chapters/s04_interrupt/)
 
 ---
 
@@ -134,7 +134,7 @@ mini-pi 的 edit + queue，在pi 里对应三个文件：
 
 1. `file-mutation-queue.ts` 用 `Map<string, Promise<void>>` 按 canonical path 分锁（key 是 realpath 归一化后的 canonical path）。为什么按 path 分锁而不是全局单队列？（提示：不同文件的编辑互不阻塞）
 2. `edit-diff.ts` 的 `fuzzyFindText` 先精确匹配，再走 `normalizeForFuzzyMatch`。什么情况下精确匹配失败但模糊匹配成功？（提示：看 normalize 做了哪些归一化）
-3. `edit.ts` 第 104-110 行：stripBom → detectLineEnding → normalizeToLF → applyEdits → restoreLineEndings。为什么不在原始字节上直接替换？（提示：CRLF 文件里 old_string 写的是 LF）
+3. `edit.ts` 第 344-350 行：stripBom → detectLineEnding → normalizeToLF → applyEditsToNormalizedContent → restoreLineEndings。为什么不在原始字节上直接替换？（提示：CRLF 文件里 old_string 写的是 LF）
 
 **动手任务（改 mini-pi）**：给 editTool 加多编辑支持——一次 edit 调用传 `edits: [{old_string, new_string}, ...]`，全部在同一把队列锁内执行。参考 pi 的 `applyEditsToNormalizedContent`：所有 edit 对同一份原文匹配，逆序应用。
 

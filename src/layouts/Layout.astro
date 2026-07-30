@@ -3,12 +3,30 @@ import "../styles/global.css";
 import Header from "../components/Header.astro";
 import ScrollProgress from "../components/ScrollProgress.astro";
 
+/**
+ * 全站布局。
+ * head 区补齐 SEO meta（OG / Twitter / canonical / favicon / theme-color），
+ * 接受页面通过 frontmatter 传入 title 与 description。
+ * @author fxbin
+ */
 interface Props {
   title: string;
   description?: string;
 }
 
-const { title, description = "基于 pi 源码，从零构建 agent harness" } = Astro.props;
+const SITE_NAME = "pi-learn";
+const DEFAULT_DESCRIPTION = "基于 pi 源码，从零构建 agent harness";
+const THEME_COLOR_DARK = "#0a0a0a";
+const THEME_COLOR_LIGHT = "#f5f5f5";
+const FAVICON_EMOJI = "🔧";
+const OG_TYPE_WEBSITE = "website";
+const TWITTER_CARD_SUMMARY = "summary";
+const SKIP_LINK_TARGET = "#main";
+const SKIP_LINK_TEXT = "跳到主内容";
+
+const { title, description = DEFAULT_DESCRIPTION } = Astro.props;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const faviconHref = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E${FAVICON_EMOJI}%3C/text%3E%3C/svg%3E`;
 ---
 
 <!doctype html>
@@ -17,11 +35,26 @@ const { title, description = "基于 pi 源码，从零构建 agent harness" } =
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    <link rel="icon" href={faviconHref} />
+    <meta name="theme-color" content={THEME_COLOR_DARK} media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content={THEME_COLOR_LIGHT} media="(prefers-color-scheme: light)" />
+    <meta property="og:type" content={OG_TYPE_WEBSITE} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta name="twitter:card" content={TWITTER_CARD_SUMMARY} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
     <title>{title}</title>
     <script is:inline>
       (function () {
         try {
-          if (localStorage.getItem("pi-learn-theme") === "light") {
+          var stored = localStorage.getItem("pi-learn-theme");
+          var light = stored === "light" ||
+            (!stored && window.matchMedia("(prefers-color-scheme: light)").matches);
+          if (light) {
             document.documentElement.classList.add("theme-on");
           }
         } catch (e) {}
@@ -29,9 +62,10 @@ const { title, description = "基于 pi 源码，从零构建 agent harness" } =
     </script>
   </head>
   <body>
+    <a href={SKIP_LINK_TARGET} class="skip-link">{SKIP_LINK_TEXT}</a>
     <ScrollProgress />
     <Header />
-    <main>
+    <main id="main">
       <slot />
     </main>
   </body>

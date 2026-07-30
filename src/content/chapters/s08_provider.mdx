@@ -16,7 +16,7 @@ import ProviderDiagram from "../../components/diagrams/ProviderDiagram.tsx";
 
 > 内部模型只有一套，线格式各有各的样。转换在边界。
 
-`...` → [s01](/pi-learn/chapters/s01_agent_loop/) → ... → [s07](/pi-learn/chapters/s07_skills/) → **`s08`** → [番外 extensions](/pi-learn/extras/)
+`...` → [s07](/pi-learn/chapters/s07_skills/) → **`s08`** → [s09](/pi-learn/chapters/s09_tui/) → ...
 
 ---
 
@@ -153,7 +153,7 @@ node code.ts
 const isDeepSeek = provider === "deepseek" || baseUrl.includes("deepseek.com");
 ```
 
-识别后设置两个兼容选项（第 1110-1113 行）：
+识别后设置两个兼容选项（第 1111-1120 行）：
 
 - `requiresReasoningContentOnAssistantMessages: true`——deepseek 把 reasoning 放在 `message.reasoning_content`，需要从 assistant 消息里读回
 - `thinkingFormat: "deepseek"`——切换到 deepseek 专属的 thinking 块处理分支
@@ -190,7 +190,7 @@ pi 的 `providers/` 目录下有几十家供应商，大多数（deepseek、groq
 
 mini-pi 的两个 provider 是教学级简化。pi 的供应商抽象分布在两处，先读再回答问题：
 
-**第一处：[`packages/ai/src/api/transform-messages.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/api/transform-messages.ts)**
+**第一处：[`packages/ai/src/providers/transform-messages.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/providers/transform-messages.ts)**
 
 这是 pi 的消息边界转换器。读 `transformMessages` 函数（第 64 行），回答：
 
@@ -200,7 +200,7 @@ mini-pi 的两个 provider 是教学级简化。pi 的供应商抽象分布在�
 
 **第二处：[`packages/ai/src/providers/openai-completions.ts`](https://github.com/earendil-works/pi/blob/v0.76.0/packages/ai/src/providers/openai-completions.ts) 的 `detectCompat`**
 
-读 `detectCompat` 函数（第 1080 行起）。回答：为什么 deepseek 不需要自己的 API 实现，靠 `detectCompat` 里的 `isDeepSeek` 判断就够了？（提示：看第 1099 行的判断条件，以及第 1110-1113 行设置的两个兼容选项）
+读 `detectCompat` 函数（第 1070 行起）。回答：为什么 deepseek 不需要自己的 API 实现，靠 `detectCompat` 里的 `isDeepSeek` 判断就够了？（提示：看第 1099 行的判断条件，以及第 1111-1120 行设置的两个兼容选项）
 
 **动手任务（改 mini-pi）**：给 `OpenAIProvider` 加一个 `mistral` 模式——Mistral 的 wire 格式也是 OpenAI 兼容的，但 `tool_calls` 的 `type` 字段省略了。你的 `toWire` 和 `fromWire` 需要改什么？提示：`type: "function"` 在 OpenAI 是必填的，Mistral 不报错但也不要求。
 
@@ -241,6 +241,6 @@ mini-pi 的 provider 比pi 简单很多，以及为什么省略是安全的：
 
 ---
 
-**八章走完，你已经有了一个完整的 mini-pi：** 循环（s01）、工具（s02）、编辑（s03）、中断（s04）、会话（s05）、压缩（s06）、技能（s07）、供应商（s08）。每一章只加一个概念，每一个概念都映射到pi 的一段源码。接下来是番外——把 mini-pi 往pi 方向再推一步。
+**供应商抽象到此为止，但 mini-pi 还没走完。** s01-s08 打的是地基：循环（s01）、工具（s02）、编辑（s03）、中断（s04）、会话（s05）、压缩（s06）、技能（s07）、供应商（s08）——八块砖搭起一个能换后端的最小 agent。但 pi 的核心机制还有一半没拆：终端怎么渲染（s09）、扩展怎么挂载（s10）、会话怎么编排（s11）、流式怎么接（s12）、状态怎么保持（s13）、对话怎么分叉（s14）。s08 只是 provider 抽象的入门，s09-s14 才是把 mini-pi 往 pi 方向再推一步的进阶机制。
 
-下一章：[番外 extensions](/pi-learn/extras/)
+下一章：[s09 TUI 渲染](/pi-learn/chapters/s09_tui/)

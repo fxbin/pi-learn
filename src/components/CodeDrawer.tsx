@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./CodeDrawer.css";
 import { highlight } from "./highlight";
 
@@ -12,9 +12,10 @@ import { highlight } from "./highlight";
  * GitHub 文件通过 raw.githubusercontent.com 拉取。
  * 带 #L<行号> 或 #L<起>-<止> 锚点的链接会自动滚动到对应行并高亮。
  *
- * 交互：
+ * 交互与无障碍：
  *   - 点击上述链接 → 右侧滑出抽屉
- *   - 点击关闭按钮 / 遮罩层 / 按 Esc → 关闭抽屉
+ *   - 抽屉具备 role="dialog" / aria-modal 语义，打开时焦点进入抽屉，
+ *     Tab 在抽屉内循环（focus trap），Esc / 关闭按钮 / 遮罩按钮关闭后焦点还原到触发链接
  *   - 复制按钮：复制代码内容
  *   - GitHub 按钮：在新标签打开原链接（仅 GitHub 源链接显示，作为 fallback）
  *
@@ -40,6 +41,17 @@ interface SourceInfo {
   /** 锚点结束行（1-indexed，含） */
   anchorEnd?: number;
 }
+
+/** 关闭按钮的可访问名称。 */
+const ARIA_LABEL_CLOSE = "关闭";
+/** 遮罩按钮的可访问名称。 */
+const ARIA_LABEL_OVERLAY = "关闭代码抽屉";
+/** 抽屉无标题时的默认可访问名称。 */
+const DIALOG_DEFAULT_LABEL = "代码查看";
+/** 复制成功的瞬时提示文案。 */
+const COPIED_TEXT = "已复制";
+/** 复制成功提示的显示时长（毫秒）。 */
+const COPIED_RESET_MS = 1500;
 
 /**
  * 解析链接，判断是否由抽屉接管。
@@ -95,6 +107,11 @@ export default function CodeDrawer() {
   const [anchorEnd, setAnchorEnd] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  /** 抽屉容器引用，用于焦点管理与 focus trap。 */
+  const drawerRef = useRef<HTMLElement>(null);
+  /** 触发抽屉的链接引用，关闭后焦点还原到此处。 */
+  const triggerRef = useRef<HTMLAnchorElement | null>(null);
+
   useEffect(() => {
     function handler(e: MouseEvent) {
       const target = (e.target as HTMLElement).closest("a");
@@ -103,6 +120,7 @@ export default function CodeDrawer() {
       const info = parseLink(href);
       if (!info) return;
       e.preventDefault();
+      triggerRef.current = target;
       setDisplay(info.display);
       setGithubUrl(info.githubUrl ?? null);
       setAnchorStart(info.anchorStart ?? null);
@@ -131,13 +149,50 @@ export default function CodeDrawer() {
     return () => document.removeEventListener("click", handler);
   }, []);
 
+  /**
+   * 打开时把焦点移入抽屉，并安装 keydown 监听：
+   *   - Esc 关闭
+   *   - Tab / Shift+Tab 在抽屉内可聚焦元素间循环（focus trap）
+   * 关闭时还原焦点到触发链接。
+   */
   useEffect(() => {
+    if (!open) return;
+    const drawer = drawerRef.current;
+    const firstFocusable = drawer?.querySelector<HTMLElement>("button, a[href]");
+    firstFocusable?.focus();
+
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && open) setOpen(false);
+      if (e.key === "Escape") {
+        closeDrawer();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const current = drawerRef.current;
+      if (!current) return;
+      const focusables = Array.from(
+        current.querySelectorAll<HTMLElement>("button, a[href]"),
+      ).filter((el) => !el.hasAttribute("disabled"));
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
+
+  /** 关闭抽屉并把焦点还原到触发链接。 */
+  function closeDrawer() {
+    setOpen(false);
+    triggerRef.current?.focus();
+    triggerRef.current = null;
+  }
 
   /**
    * 渲染完成后滚动到锚点行并加高亮 class。
@@ -169,22 +224,31 @@ export default function CodeDrawer() {
       const btn = document.querySelector<HTMLButtonElement>(".cd-copy-btn");
       if (btn) {
         const original = btn.textContent;
-        btn.textContent = "已复制";
+        btn.textContent = COPIED_TEXT;
         setTimeout(() => {
           if (btn) btn.textContent = original;
-        }, 1500);
+        }, COPIED_RESET_MS);
       }
     });
   }
 
   return (
     <>
-      <div
+      <button
+        type="button"
         className={`cd-overlay ${open ? "cd-overlay-open" : ""}`}
-        onClick={() => setOpen(false)}
-        aria-hidden="true"
+        onClick={closeDrawer}
+        aria-label={ARIA_LABEL_OVERLAY}
+        tabIndex={open ? 0 : -1}
       />
-      <aside className={`cd-drawer ${open ? "cd-drawer-open" : ""}`} aria-hidden={!open}>
+      <aside
+        ref={drawerRef}
+        className={`cd-drawer ${open ? "cd-drawer-open" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={display || DIALOG_DEFAULT_LABEL}
+        aria-hidden={!open}
+      >
         <header className="cd-header">
           <div className="cd-title-bar">
             <span className="cd-filename" title={display}>{display}</span>
@@ -211,8 +275,13 @@ export default function CodeDrawer() {
                 GitHub
               </a>
             )}
-            <button type="button" className="cd-close-btn" onClick={() => setOpen(false)}>
-              ×
+            <button
+              type="button"
+              className="cd-close-btn"
+              onClick={closeDrawer}
+              aria-label={ARIA_LABEL_CLOSE}
+            >
+              <span aria-hidden="true">×</span>
             </button>
           </div>
         </header>
