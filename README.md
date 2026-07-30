@@ -99,7 +99,7 @@ npm run check
 
 ## pi 版本锚定
 
-本笔记基于 pi `v0.76.0` 源码快照（本仓库 `.reference/pi/`）。pi 主仓持续演进，若你阅读最新源码时发现行号或结构漂移，以机制为单位对照即可，篇目锚点会按需修订。
+本笔记基于 pi `v0.76.0` 源码快照（[earendil-works/pi@v0.76.0](https://github.com/earendil-works/pi/tree/v0.76.0)，本仓库镜像在 `.reference/pi/`）。pi 主仓持续演进，若你阅读最新源码时发现行号或结构漂移，以机制为单位对照即可，篇目锚点会按需修订。
 
 ## 目录结构
 
