@@ -67,7 +67,7 @@ export default function DiffRenderDiagram() {
 	};
 
 	return (
-		<div className="drd-root diagram">
+		<div className="drd-root diagram diagram-wide">
 			<div className="drd-header">
 				<span className="drd-title">DIFF RENDER</span>
 				<div className="drd-controls">

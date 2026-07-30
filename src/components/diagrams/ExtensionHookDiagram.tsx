@@ -157,7 +157,7 @@ export default function ExtensionHookDiagram() {
   };
 
   return (
-    <div className={`ehd-root diagram ${stale ? "ehd-stale" : ""}`}>
+    <div className={`ehd-root diagram diagram-wide ${stale ? "ehd-stale" : ""}`}>
       <div className="ehd-header">
         <span className="ehd-title">EXTENSION HOOK LIFECYCLE</span>
         <div className="ehd-controls">

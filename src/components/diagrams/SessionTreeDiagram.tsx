@@ -238,7 +238,7 @@ export default function SessionTreeDiagram(): JSX.Element {
 	const current = STEPS[step]!;
 
 	return (
-		<div className="std-root diagram">
+		<div className="std-root diagram diagram-wide">
 			<div className="std-header">
 				<span className="std-title">SESSION TREE</span>
 				<div className="std-controls">

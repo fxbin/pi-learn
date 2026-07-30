@@ -143,7 +143,7 @@ export default function DualQueueDiagram() {
 	const drainFollowUpFired = step >= TIMELINES[1].drainIndex && followUpQueue.length > 0;
 
 	return (
-		<div className="dq-root diagram">
+		<div className="dq-root diagram diagram-wide">
 			<div className="dq-header">
 				<span className="dq-title">DUAL QUEUE · steering vs followUp</span>
 				<div className="dq-controls">

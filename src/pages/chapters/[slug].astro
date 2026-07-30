@@ -198,16 +198,34 @@ const slug = entry.id.replace(/\.(md|mdx)$/, "");
     font-weight: 700;
   }
 
-  /* 动态图示容器：突破正文窄宽限制，居中 breakout 展示 */
+  /*
+   * 动态图示宽度分三档（按内容信息密度）：
+   *   .diagram            — 默认档：与正文同宽（900px），不再 breakout。中密度图适用。
+   *   .diagram-wide       — 加宽档：1100px breakout。高密度双栏/多视图图适用。
+   *   .diagram-full       — 全宽档：calc(100vw - 360px)，无上限。少用，仅极宽表格。
+   * 默认档不脱离正文容器，视觉节奏与正文一致；加宽档保留 breakout 用于确实需要横向空间的图。
+   */
   .chapter-content :global(.diagram) {
+    margin: 32px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 60px var(--shadow);
+  }
+
+  .chapter-content :global(.diagram-wide) {
     position: relative;
     left: 50%;
     transform: translateX(-50%);
     width: min(1100px, calc(100vw - 360px));
     margin: 32px auto;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: 0 20px 60px var(--shadow);
+  }
+
+  .chapter-content :global(.diagram-full) {
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100vw - 360px);
+    margin: 32px auto;
   }
 
   @media (max-width: 1100px) {
@@ -220,8 +238,12 @@ const slug = entry.id.replace(/\.(md|mdx)$/, "");
       padding: 0 24px;
     }
 
-    .chapter-content :global(.diagram) {
-      width: min(1100px, calc(100vw - 48px));
+    .chapter-content :global(.diagram-wide) {
+      width: calc(100vw - 48px);
+    }
+
+    .chapter-content :global(.diagram-full) {
+      width: calc(100vw - 48px);
     }
   }
 </style>

@@ -83,7 +83,7 @@ export default function SessionOrchestratorDiagram() {
   };
 
   return (
-    <div className="so-root diagram">
+    <div className="so-root diagram diagram-wide">
       <div className="so-header">
         <span className="so-title">SESSION ORCHESTRATOR</span>
         <div className="so-controls">

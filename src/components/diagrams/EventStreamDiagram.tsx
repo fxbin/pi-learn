@@ -155,7 +155,7 @@ export default function EventStreamDiagram() {
   };
 
   return (
-    <div className="es-root diagram">
+    <div className="es-root diagram diagram-wide">
       <div className="es-header">
         <span className="es-title">EVENTSTREAM 双输出 + REPAIRJSON 状态机</span>
         <div className="es-controls">
