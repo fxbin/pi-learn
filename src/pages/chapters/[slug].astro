@@ -2,11 +2,13 @@
 import { getCollection, render } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
 import ChapterNav from "../../components/ChapterNav.astro";
+import CodeDrawer from "../../components/CodeDrawer.tsx";
 
 /**
  * 章节详情页动态路由。
  * 采用左侧固定章节导航 + 右侧主内容区的两栏布局，
  * 主内容区中的动态图示使用更宽的展示区域以提升可读性。
+ * 点击 code.ts / practice.ts 等代码链接时，从右侧滑出抽屉查看，不再触发下载。
  * @author fxbin
  */
 export async function getStaticPaths() {
@@ -42,6 +44,7 @@ const slug = entry.id.replace(/\.(md|mdx)$/, "");
       </div>
     </div>
   </article>
+  <CodeDrawer client:load />
 </Layout>
 
 <style>
